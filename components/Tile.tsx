@@ -34,16 +34,14 @@ export const Tile: React.FC<TileProps> = ({ type, isHit, isDanger }) => {
     case TileType.EMPTY:
     default:
         // Minimal dark background
-        baseClass += " bg-neutral-950/50 border border-white/5";
+        baseClass += " bg-neutral-950/50 border border-white/10";
         break;
   }
 
   return (
-    <div className="aspect-square p-[2px]">
-      <div 
-        className={baseClass}
-        role="presentation"
-      />
-    </div>
+    <div 
+      className={baseClass}
+      role="presentation"
+    />
   );
 };

@@ -32,7 +32,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen w-full max-w-md md:max-w-full mx-auto p-8 font-sans relative">
+    <div className="flex flex-col items-center min-h-screen w-full max-w-md mx-auto p-8 font-sans relative">
       <style>{`
         @keyframes intro-logo {
           0% { opacity: 0; transform: scale(0.95) translateY(10px); filter: blur(10px); }

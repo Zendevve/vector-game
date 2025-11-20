@@ -264,7 +264,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     animationFrameId = requestAnimationFrame(updateParticles);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [particles.length]); // Only re-subscribe if length changes (start/stop)
+  }, [particles.length]); 
 
   // Start Game / Restart Logic
   const initializeGame = useCallback(() => {
@@ -283,6 +283,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     generateLevel(startParams.gridSize, startPlayer, startLevel);
     setHitWallIndex(null);
     setParticles([]);
+    setSwipeFeedback(null);
     isProcessingMove.current = false;
     
     setIsPlaying(true);
@@ -364,10 +365,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
             // CLASSIC MODE: Penalty
-            spawnParticles(playerIndex, 'COLLISION');
-            setTimeLeft(prev => Math.max(0, prev - 500)); // 500ms penalty
+            setTimeLeft(prev => Math.max(0, prev - 500));
         }
-        return;
+        return; 
     }
 
     const newIndex = newRow * gridSize + newCol;
@@ -383,9 +383,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             return;
         }
 
-        // Classic Mode: Penalize or Block
-        setTimeLeft(prev => Math.max(0, prev - 500)); // 500ms penalty
-        
+        // Classic Mode: Penalize
+        setTimeLeft(prev => Math.max(0, prev - 500));
+
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
         hitTimeoutRef.current = window.setTimeout(() => {
             setHitWallIndex(null);
@@ -462,33 +462,20 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const absY = Math.abs(diffY);
     
     if (Math.max(absX, absY) > 30) {
+        let dir: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
         if (absX > absY) {
-            const dir = diffX > 0 ? 'RIGHT' : 'LEFT';
-            movePlayer(diffX > 0 ? 1 : -1, 0);
-            setSwipeFeedback({ direction: dir, id: Date.now() });
+            const xDir = diffX > 0 ? 1 : -1;
+            movePlayer(xDir, 0);
+            dir = xDir > 0 ? 'RIGHT' : 'LEFT';
         } else {
-            const dir = diffY > 0 ? 'DOWN' : 'UP';
-            movePlayer(0, diffY > 0 ? 1 : -1);
-            setSwipeFeedback({ direction: dir, id: Date.now() });
+            const yDir = diffY > 0 ? 1 : -1;
+            movePlayer(0, yDir);
+            dir = yDir > 0 ? 'DOWN' : 'UP';
         }
+        setSwipeFeedback({ direction: dir, id: Date.now() });
     }
     
     touchStartRef.current = null;
-  };
-
-  // Clear swipe feedback after animation
-  useEffect(() => {
-    if (swipeFeedback) {
-        const timer = setTimeout(() => setSwipeFeedback(null), 500);
-        return () => clearTimeout(timer);
-    }
-  }, [swipeFeedback]);
-
-  const getGridCols = () => {
-    if (gridSize === 3) return 'grid-cols-3';
-    if (gridSize === 4) return 'grid-cols-4';
-    if (gridSize === 5) return 'grid-cols-5';
-    return 'grid-cols-3';
   };
 
   // Calculate Player Animation Position
@@ -497,20 +484,20 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
   return (
     <div 
-        className="flex flex-col h-screen w-full max-w-md md:max-w-7xl mx-auto bg-[#050505] relative overflow-hidden font-sans"
+        className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans touch-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
     >
       <style>{`
-        @keyframes swipe-fade {
-          0% { opacity: 0; transform: scale(0.5); }
-          20% { opacity: 1; transform: scale(1.1); }
-          100% { opacity: 0; transform: scale(1.0); }
-        }
+         @keyframes swipe-fade {
+           0% { opacity: 0; transform: scale(0.8); }
+           20% { opacity: 1; transform: scale(1.2); }
+           100% { opacity: 0; transform: scale(1.5); }
+         }
       `}</style>
 
       {/* Minimalist HUD */}
-      <div className="flex justify-between items-end p-8 pb-2 md:max-w-3xl md:mx-auto md:w-full">
+      <div className="flex justify-between items-end p-8 pb-2 w-full">
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">GRID</span>
@@ -534,11 +521,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       </div>
 
       {/* Progress Line */}
-      <div className="w-full px-8 mb-8 md:max-w-3xl md:mx-auto">
+      <div className="w-full px-8 mb-8">
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
-                className={`h-full transition-all duration-75 ease-linear ${mode === GameMode.LAVA ? 'bg-red-500' : 'bg-white'}`}
-                style={{ width: `${(timeLeft / maxTime) * 100}%` }}
+                className={`h-full ${mode === GameMode.LAVA ? 'bg-red-500' : 'bg-white'}`}
+                style={{ width: `${Math.max(0, (timeLeft / maxTime) * 100)}%` }}
             />
         </div>
       </div>
@@ -546,22 +533,24 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       {/* Game Board */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
         <div 
-            className={`grid ${getGridCols()} w-full aspect-square max-w-[380px] md:max-w-[600px] lg:max-w-[700px] md:max-h-[65vh] transition-all duration-500 relative`}
-            // Remove gap logic here to make percentage calculations precise for animations
-            // We will add padding to individual tiles instead
+            className="grid relative transition-all duration-500"
+            style={{
+              width: 'min(100%, 55vh)',
+              aspectRatio: '1/1',
+              gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`
+            }}
         >
           
           {/* Static Grid (Background, Target, Walls) */}
           {Array.from({ length: gridSize * gridSize }).map((_, index) => {
             let type = TileType.EMPTY;
-            // Don't render PLAYER in the grid anymore, it is an overlay now
             if (index === playerIndex) type = TileType.EMPTY; 
             else if (index === targetIndex) type = TileType.TARGET;
             else if (walls.has(index)) type = TileType.WALL;
             
             const isHit = index === hitWallIndex;
             
-            // Calculate adjacency for warning (Lava Mode)
             const pRow = Math.floor(playerIndex / gridSize);
             const pCol = playerIndex % gridSize;
             const tRow = Math.floor(index / gridSize);
@@ -602,36 +591,31 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                     height: `${p.size}px`,
                     backgroundColor: p.color,
                     opacity: p.life,
-                    transform: 'translate(-50%, -50%)' // Center anchor
+                    transform: 'translate(-50%, -50%)'
                 }}
             />
           ))}
         </div>
+        
+        {/* Swipe Feedback Overlay */}
+        {swipeFeedback && (
+             <div 
+                key={swipeFeedback.id}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
+                style={{ animation: 'swipe-fade 0.5s ease-out forwards' }}
+             >
+                <div className="text-white/20">
+                    {swipeFeedback.direction === 'UP' && <ChevronUp size={120} strokeWidth={1} />}
+                    {swipeFeedback.direction === 'DOWN' && <ChevronDown size={120} strokeWidth={1} />}
+                    {swipeFeedback.direction === 'LEFT' && <ChevronLeft size={120} strokeWidth={1} />}
+                    {swipeFeedback.direction === 'RIGHT' && <ChevronRight size={120} strokeWidth={1} />}
+                </div>
+             </div>
+        )}
       </div>
 
-      {/* Swipe Feedback Overlay */}
-      {swipeFeedback && (
-        <div 
-            key={swipeFeedback.id}
-            className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none"
-        >
-            <div 
-                className="bg-neutral-900/80 backdrop-blur-sm p-4 border border-white/20 shadow-2xl"
-                style={{ 
-                    animation: 'swipe-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    borderRadius: '100%'
-                }}
-            >
-                {swipeFeedback.direction === 'UP' && <ChevronUp size={32} className="text-white" strokeWidth={3} />}
-                {swipeFeedback.direction === 'DOWN' && <ChevronDown size={32} className="text-white" strokeWidth={3} />}
-                {swipeFeedback.direction === 'LEFT' && <ChevronLeft size={32} className="text-white" strokeWidth={3} />}
-                {swipeFeedback.direction === 'RIGHT' && <ChevronRight size={32} className="text-white" strokeWidth={3} />}
-            </div>
-        </div>
-      )}
-
       {/* Minimal Bottom Controls */}
-      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto md:max-w-3xl md:mx-auto md:w-full">
+      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto w-full">
         <div className="flex gap-8 items-center">
             <button 
                 onClick={initializeGame}
