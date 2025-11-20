@@ -3,6 +3,7 @@ import { Button } from '../components/Button';
 import { GameMode, TileType } from '../types';
 import { HighScores } from '../utils/storage';
 import { X, HelpCircle } from 'lucide-react';
+import { TileType as TileTypeEnum } from '../types'; // Import enum for usage
 import { Tile } from '../components/Tile';
 
 interface MainMenuProps {
@@ -54,6 +55,21 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           20% { opacity: 1; }
           80% { transform: translateX(12px); opacity: 1; }
           100% { transform: translateX(20px); opacity: 0; }
+        }
+        
+        /* Custom Minimalist Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #262626;
+          border-radius: 0px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #525252;
         }
       `}</style>
       
@@ -169,19 +185,19 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
                         <div className="grid grid-cols-3 gap-4">
                             <div className="flex flex-col items-center gap-2">
                                 <div className="w-12 h-12 relative">
-                                    <Tile type={TileType.PLAYER} />
+                                    <Tile type={TileTypeEnum.PLAYER} />
                                 </div>
                                 <span className="text-[10px] font-bold text-white uppercase">Unit</span>
                             </div>
                             <div className="flex flex-col items-center gap-2">
                                 <div className="w-12 h-12 p-1">
-                                    <Tile type={TileType.TARGET} />
+                                    <Tile type={TileTypeEnum.TARGET} />
                                 </div>
                                 <span className="text-[10px] font-bold text-cyan-400 uppercase">Goal</span>
                             </div>
                             <div className="flex flex-col items-center gap-2">
                                 <div className="w-12 h-12 p-1">
-                                    <Tile type={TileType.WALL} />
+                                    <Tile type={TileTypeEnum.WALL} />
                                 </div>
                                 <span className="text-[10px] font-bold text-neutral-500 uppercase">Threat</span>
                             </div>
