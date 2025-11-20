@@ -36,11 +36,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         
         {/* Sleek Minimalist Header */}
-        <div className="flex flex-col items-center mb-16 select-none animate-in fade-in slide-in-from-top-8 duration-700">
+        <div className="flex flex-col items-center mb-20 select-none animate-in fade-in slide-in-from-top-8 duration-700">
           <h1 className="text-8xl md:text-9xl font-bold text-white tracking-tighter">
             VECTOR
           </h1>
-          <span className="mt-4 text-[10px] font-mono font-medium text-neutral-500 tracking-[0.6em] uppercase">
+          <span className="mt-6 text-[10px] font-mono font-medium text-neutral-500 tracking-[0.8em] uppercase">
             Precision Challenge
           </span>
         </div>
@@ -56,7 +56,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
             onMouseLeave={handleMouseLeave}
             className="relative group"
           >
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center justify-between w-full px-2">
               <span>RUN</span>
               <span className="text-[10px] font-mono font-normal text-neutral-400 group-hover:text-black transition-colors">
                 BEST {highScores[GameMode.CLASSIC] || 0}
@@ -73,7 +73,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
             onMouseLeave={handleMouseLeave}
             className="relative group"
           >
-             <div className="flex items-center justify-between w-full">
+             <div className="flex items-center justify-between w-full px-2">
               <span>FLOOR IS LAVA</span>
               <span className="text-[10px] font-mono font-normal text-red-400 group-hover:text-red-100 transition-colors">
                 BEST {highScores[GameMode.LAVA] || 0}
@@ -83,14 +83,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </div>
 
         {/* Dynamic Description Area */}
-        <div className="h-12 mt-8 flex items-center justify-center animate-in fade-in duration-700 delay-300">
+        <div className="h-12 mt-10 flex items-center justify-center animate-in fade-in duration-700 delay-300">
           <span className="text-[10px] font-mono text-neutral-500 tracking-widest text-center max-w-[200px] leading-tight uppercase">
               {activeDesc}
           </span>
         </div>
       </div>
       
-      {/* Footer Actions - Pushed to bottom with standard flow to avoid overlap */}
+      {/* Footer Actions */}
       <div className="mt-auto pt-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
         <button 
             onClick={handleHelpClick}
@@ -101,7 +101,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </button>
 
         <div className="text-neutral-900 text-[9px] font-mono select-none">
-          SYS.V.3.3
+          SYS.V.3.4
         </div>
       </div>
 
@@ -128,12 +128,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
                     <div>
                          <h3 className="text-white font-bold mb-2 tracking-wider text-sm">CONTROLS</h3>
                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-neutral-900 p-3 rounded border border-neutral-800">
+                            <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800">
                                 <div className="text-center mb-1 font-bold text-neutral-500">DESKTOP</div>
                                 <div className="text-center text-white">ARROW KEYS</div>
                                 <div className="text-center text-[9px] text-neutral-600 mt-1">WASD SUPPORTED</div>
                             </div>
-                            <div className="bg-neutral-900 p-3 rounded border border-neutral-800">
+                            <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800">
                                 <div className="text-center mb-1 font-bold text-neutral-500">MOBILE</div>
                                 <div className="text-center text-white">SWIPE</div>
                                 <div className="text-center text-[9px] text-neutral-600 mt-1">ANYWHERE ON SCREEN</div>
