@@ -1,21 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import { MainMenu } from './views/MainMenu';
 import { Game } from './views/Game';
-import { Settings } from './views/Settings';
 import { ViewState, GameMode } from './types';
 import { Button } from './components/Button';
 import { soundManager } from './utils/sound';
-import { getHighScores, saveHighScore, HighScores, getSettings, saveSettings, GameSettings } from './utils/storage';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { getHighScores, saveHighScore, HighScores } from './utils/storage';
+import { Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
   const [lastScore, setLastScore] = useState<number>(0);
-  
-  // Settings State
-  const [settings, setSettings] = useState<GameSettings>(getSettings());
-  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-  
+  const [gameOverDetails, setGameOverDetails] = useState<{title: string, desc: string}>({ title: 'Terminated', desc: 'Time limit exceeded' });
+  const [isSoundOn, setIsSoundOn] = useState<boolean>(true);
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
   const [activeMode, setActiveMode] = useState<GameMode>(GameMode.CLASSIC);
 
@@ -28,21 +25,25 @@ const App: React.FC = () => {
     return () => window.removeEventListener('click', initAudio);
   }, []);
 
-  // Apply Settings
   useEffect(() => {
-    soundManager.setEnabled(settings.soundEnabled);
-    soundManager.setVolume(settings.volume);
-    saveSettings(settings);
-  }, [settings]);
+    soundManager.setEnabled(isSoundOn);
+  }, [isSoundOn]);
 
   const handleStartGame = (mode: GameMode) => {
     setActiveMode(mode);
     setViewState(ViewState.GAME);
   };
 
-  const handleEndGame = (score: number) => {
+  const handleEndGame = (score: number, reason?: { title: string, desc: string }) => {
     setLastScore(score);
     
+    if (reason) {
+        setGameOverDetails(reason);
+    } else {
+        setGameOverDetails({ title: 'Terminated', desc: 'Time limit exceeded' });
+    }
+
+    // Save high score if applicable
     const newScores = saveHighScore(activeMode, score);
     setHighScores(newScores);
 
@@ -57,50 +58,33 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
-  const updateSettings = (newSettings: Partial<GameSettings>) => {
-      setSettings(prev => ({ ...prev, ...newSettings }));
+  const toggleSound = () => {
+    setIsSoundOn(!isSoundOn);
   };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black font-sans">
       
-      {/* Global Settings Button */}
-      <div className="fixed top-6 right-6 z-40">
+      {/* Sound Toggle */}
+      <div className="fixed top-6 right-6 z-50">
         <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-full text-neutral-600 hover:text-white hover:bg-white/10 transition-all"
-            aria-label="Open Settings"
+            onClick={toggleSound}
+            className={`p-2 rounded-full transition-colors ${isSoundOn ? 'text-white hover:bg-white/10' : 'text-neutral-600 hover:text-white'}`}
         >
-            <SettingsIcon size={24} />
+            {isSoundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
         </button>
       </div>
 
-      <Settings 
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        volume={settings.volume}
-        onVolumeChange={(v) => updateSettings({ volume: v })}
-        soundEnabled={settings.soundEnabled}
-        onSoundEnabledChange={(v) => updateSettings({ soundEnabled: v })}
-        hapticsEnabled={settings.hapticsEnabled}
-        onHapticsEnabledChange={(v) => updateSettings({ hapticsEnabled: v })}
-      />
-
       {viewState === ViewState.MENU && (
-        <MainMenu 
-            onStartGame={handleStartGame} 
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            highScores={highScores} 
-        />
+        <MainMenu onStartGame={handleStartGame} highScores={highScores} />
       )}
 
       {viewState === ViewState.GAME && (
         <Game 
+          mode={activeMode}
           onEndGame={handleEndGame} 
           onBackToMenu={handleBackToMenu} 
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          highScore={highScores[activeMode]}
-          hapticsEnabled={settings.hapticsEnabled}
+          highScore={highScores[activeMode] || 0}
         />
       )}
 
@@ -111,8 +95,10 @@ const App: React.FC = () => {
 
             <div className="w-full mb-12">
                 <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.3em] mb-2">Status</div>
-                <h2 className="text-5xl font-black text-white uppercase tracking-tighter">Terminated</h2>
-                <p className="text-neutral-400 mt-2 font-mono text-sm">Connection lost. Time limit exceeded.</p>
+                <h2 className={`text-5xl font-black uppercase tracking-tighter ${gameOverDetails.title !== 'Terminated' ? 'text-red-500' : 'text-white'}`}>
+                    {gameOverDetails.title}
+                </h2>
+                <p className="text-neutral-400 mt-2 font-mono text-sm">{gameOverDetails.desc}</p>
             </div>
 
             <div className="grid grid-cols-2 w-full gap-4 mb-12">
@@ -123,7 +109,7 @@ const App: React.FC = () => {
                 <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-lg flex flex-col justify-between">
                     <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Rating</div>
                     <div className="text-xl font-bold text-cyan-500">
-                        {lastScore > highScores[activeMode] ? 'NEW PB' : (lastScore > 20 ? 'S-TIER' : lastScore > 10 ? 'A-TIER' : 'C-TIER')}
+                        {lastScore > (highScores[activeMode] || 0) ? 'NEW PB' : (lastScore > 20 ? 'S-TIER' : lastScore > 10 ? 'A-TIER' : 'C-TIER')}
                     </div>
                 </div>
             </div>

@@ -7,7 +7,6 @@ export enum ViewState {
 
 export enum GameMode {
   CLASSIC = 'CLASSIC',
-  CHALLENGE = 'CHALLENGE',
   LAVA = 'LAVA',
 }
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '../components/Button';
 import { GameMode } from '../types';
@@ -5,11 +6,10 @@ import { HighScores } from '../utils/storage';
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
-  onOpenSettings: () => void;
   highScores: HighScores;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenSettings, highScores }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-md mx-auto p-8 relative">
       
@@ -24,7 +24,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenSettings,
       </div>
 
       {/* Menu Actions */}
-      <div className="flex flex-col gap-3 w-full max-w-[280px]">
+      <div className="flex flex-col gap-4 w-full max-w-[280px]">
         <Button 
           variant="primary" 
           size="lg" 
@@ -35,56 +35,35 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenSettings,
           <div className="flex items-center justify-between w-full">
             <span>RUN</span>
             <span className="text-[10px] font-mono font-normal text-neutral-400 group-hover:text-black transition-colors">
-              BEST {highScores[GameMode.CLASSIC]}
+              BEST {highScores[GameMode.CLASSIC] || 0}
             </span>
           </div>
         </Button>
         
         <Button 
-          variant="secondary" 
-          size="lg" 
-          fullWidth 
-          onClick={() => onStartGame(GameMode.CHALLENGE)}
-          className="relative group"
-        >
-           <div className="flex items-center justify-between w-full">
-            <span>HARDCORE</span>
-            <span className="text-[10px] font-mono font-normal text-neutral-600 group-hover:text-white transition-colors">
-              BEST {highScores[GameMode.CHALLENGE]}
-            </span>
-          </div>
-        </Button>
-        
-        <Button 
-          variant="secondary" 
+          variant="danger" 
           size="lg" 
           fullWidth 
           onClick={() => onStartGame(GameMode.LAVA)}
           className="relative group"
         >
            <div className="flex items-center justify-between w-full">
-            <span>SURVIVAL</span>
-            <span className="text-[10px] font-mono font-normal text-neutral-600 group-hover:text-white transition-colors">
-              BEST {highScores[GameMode.LAVA]}
+            <span>FLOOR IS LAVA</span>
+            <span className="text-[10px] font-mono font-normal text-red-400 group-hover:text-red-100 transition-colors">
+              BEST {highScores[GameMode.LAVA] || 0}
             </span>
           </div>
         </Button>
       </div>
       
       {/* Footer Actions */}
-      <div className="mt-8 flex gap-4">
-        <button className="text-neutral-600 text-xs hover:text-white transition-colors uppercase font-bold tracking-widest">Profile</button>
-        <button 
-          onClick={onOpenSettings}
-          className="text-neutral-600 text-xs hover:text-white transition-colors uppercase font-bold tracking-widest"
-        >
-          Settings
-        </button>
+      <div className="mt-12 flex gap-6">
+        <button className="text-neutral-700 text-[10px] hover:text-white transition-colors uppercase font-bold tracking-[0.2em]">Settings</button>
       </div>
 
       {/* Version */}
-      <div className="absolute bottom-8 text-neutral-800 text-[10px] font-mono">
-        SYS.V.2.2
+      <div className="absolute bottom-8 text-neutral-900 text-[10px] font-mono">
+        SYS.V.3.0
       </div>
     </div>
   );

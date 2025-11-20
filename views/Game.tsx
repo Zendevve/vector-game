@@ -1,16 +1,16 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
-import { TileType } from '../types';
+import { TileType, GameMode } from '../types';
 import { soundManager } from '../utils/sound';
-import { Pause, Play, RotateCcw, Settings } from 'lucide-react';
+import { Pause, Play, RotateCcw } from 'lucide-react';
 
 interface GameProps {
-  onEndGame: (score: number) => void;
+  mode: GameMode;
+  onEndGame: (score: number, reason?: {title: string, desc: string}) => void;
   onBackToMenu: () => void;
-  onOpenSettings: () => void;
   highScore: number;
-  hapticsEnabled: boolean;
 }
 
 // Configuration Constants
@@ -64,13 +64,7 @@ const calculateDifficulty = (level: number) => {
   return { gridSize, timeLimit, wallCountMin, wallCountMax };
 };
 
-export const Game: React.FC<GameProps> = ({ 
-  onEndGame, 
-  onBackToMenu, 
-  onOpenSettings, 
-  highScore, 
-  hapticsEnabled 
-}) => {
+export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highScore }) => {
   // Game State
   const [score, setScore] = useState<number>(1); 
   const scoreRef = useRef<number>(1); // Ref to keep track of score inside closures
@@ -234,7 +228,7 @@ export const Game: React.FC<GameProps> = ({
     timerRef.current = window.setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 0) {
-          handleGameOver();
+          handleGameOver({ title: 'TERMINATED', desc: 'TIME LIMIT EXCEEDED' });
           return 0;
         }
         return prev - TIME_DECREMENT_INTERVAL;
@@ -259,16 +253,16 @@ export const Game: React.FC<GameProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, isPaused]);
 
-  const handleGameOver = () => {
+  const handleGameOver = (reason?: { title: string, desc: string }) => {
     stopTimer();
     setIsPlaying(false);
     soundManager.playGameOver();
-    if (hapticsEnabled && navigator.vibrate) navigator.vibrate(400);
     
     const finalScore = scoreRef.current;
     
+    // Small delay for visual feedback (if any) before screen switch
     setTimeout(() => {
-        onEndGame(finalScore);
+        onEndGame(finalScore, reason);
     }, 100);
   };
 
@@ -281,15 +275,29 @@ export const Game: React.FC<GameProps> = ({
     const newRow = row + dy;
     const newCol = col + dx;
 
-    if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) return;
+    // CHECK BOUNDS
+    if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
+        // LAVA MODE: Moving out of bounds is fatal (Void Fall)
+        if (mode === GameMode.LAVA) {
+            handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
+        }
+        return; // Classic mode just blocks
+    }
 
     const newIndex = newRow * gridSize + newCol;
     
+    // CHECK WALLS
     if (walls.has(newIndex)) {
-        soundManager.playError();
-        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(200);
         setHitWallIndex(newIndex);
+        soundManager.playError();
         
+        // LAVA MODE: Touching a wall is fatal (Firewall)
+        if (mode === GameMode.LAVA) {
+            handleGameOver({ title: 'CRITICAL FAILURE', desc: 'INCINERATED BY FIREWALL' });
+            return;
+        }
+
+        // Classic Mode: Penalize or Block
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
         hitTimeoutRef.current = window.setTimeout(() => {
             setHitWallIndex(null);
@@ -301,7 +309,6 @@ export const Game: React.FC<GameProps> = ({
 
     if (newIndex === targetIndex) {
         soundManager.playTap();
-        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(15);
         
         const nextLevel = score + 1;
         setScore(nextLevel);
@@ -310,6 +317,7 @@ export const Game: React.FC<GameProps> = ({
         setMaxTime(diffParams.timeLimit);
         setTimeLeft(diffParams.timeLimit);
 
+        // Handle Grid Resizing if difficulty tier increases
         if (diffParams.gridSize !== gridSize) {
             const currentRow = newRow;
             const currentCol = newCol;
@@ -325,10 +333,9 @@ export const Game: React.FC<GameProps> = ({
 
     } else {
         soundManager.playMove();
-        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(5);
         setPlayerIndex(newIndex);
     }
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, hapticsEnabled]);
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);
 
   // Keyboard
   useEffect(() => {
@@ -408,7 +415,9 @@ export const Game: React.FC<GameProps> = ({
         </div>
 
         <div className="flex flex-col items-end">
-           <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em] mb-1">TIMER</span>
+           <span className={`text-[10px] font-bold tracking-[0.2em] mb-1 ${mode === GameMode.LAVA ? 'text-red-600' : 'text-neutral-600'}`}>
+             {mode === GameMode.LAVA ? 'LAVA MODE' : 'TIMER'}
+           </span>
            <span className={`text-3xl font-bold tracking-tight font-mono ${timeLeft < 1000 ? 'text-red-500' : 'text-white'}`}>
             {(timeLeft / 1000).toFixed(2)}s
           </span>
@@ -419,7 +428,7 @@ export const Game: React.FC<GameProps> = ({
       <div className="w-full px-8 mb-8">
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
-                className="h-full bg-white transition-all duration-75 ease-linear" 
+                className={`h-full transition-all duration-75 ease-linear ${mode === GameMode.LAVA ? 'bg-red-500' : 'bg-white'}`}
                 style={{ width: `${(timeLeft / maxTime) * 100}%` }}
             />
         </div>
@@ -469,7 +478,6 @@ export const Game: React.FC<GameProps> = ({
                 <h2 className="text-xl font-bold text-white tracking-[0.3em] mb-8 uppercase">Paused</h2>
                 <Button fullWidth variant="primary" onClick={() => setIsPaused(false)}>Resume</Button>
                 <Button fullWidth variant="secondary" onClick={initializeGame}>Restart</Button>
-                <Button fullWidth variant="secondary" onClick={onOpenSettings}><div className="flex items-center justify-center gap-2"><Settings size={16}/> Settings</div></Button>
                 <Button fullWidth variant="ghost" onClick={onBackToMenu}>Abort</Button>
             </div>
         </div>
