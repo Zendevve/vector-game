@@ -1,3 +1,4 @@
+
 // Simple AudioContext wrapper to avoid external assets
 class SoundManager {
   private audioCtx: AudioContext | null = null;
@@ -22,6 +23,12 @@ class SoundManager {
     if (!this.enabled || !this.audioCtx) return;
     // Very short, quiet tick for movement
     this.playTone(200, 'sine', 0.03, 0.05);
+  }
+
+  public playClick() {
+    if (!this.enabled || !this.audioCtx) return;
+    // Short UI interaction click
+    this.playTone(400, 'sine', 0.05, 0.05);
   }
 
   public playTap() {
