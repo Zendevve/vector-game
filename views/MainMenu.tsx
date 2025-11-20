@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
-import { GameMode } from '../types';
+import { GameMode, TileType } from '../types';
 import { HighScores } from '../utils/storage';
 import { X, HelpCircle } from 'lucide-react';
+import { Tile } from '../components/Tile';
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
@@ -30,7 +31,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen w-full max-w-md mx-auto p-8 font-sans relative">
+    <div className="flex flex-col items-center min-h-screen w-full max-w-md md:max-w-full mx-auto p-8 font-sans relative">
       <style>{`
         @keyframes intro-logo {
           0% { opacity: 0; transform: scale(0.95) translateY(10px); filter: blur(10px); }
@@ -43,6 +44,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         @keyframes intro-fade-up {
           0% { opacity: 0; transform: translateY(20px); }
           100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes modal-fade-in {
+          0% { opacity: 0; transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes visual-swipe {
+          0% { transform: translateX(-12px); opacity: 0; }
+          20% { opacity: 1; }
+          80% { transform: translateX(12px); opacity: 1; }
+          100% { transform: translateX(20px); opacity: 0; }
         }
       `}</style>
       
@@ -141,42 +152,89 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
 
       {/* Help Modal */}
       {showHelp && (
-        <div className="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-8 animate-in fade-in duration-200">
-             <div className="w-full max-w-sm">
-                <div className="flex justify-between items-center mb-8 border-b border-white/20 pb-4">
+        <div className="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-8" style={{ animation: 'modal-fade-in 0.2s ease-out forwards' }}>
+             <div className="w-full max-w-sm h-full flex flex-col">
+                <div className="flex justify-between items-center mb-8 border-b border-white/20 pb-4 shrink-0">
                     <h2 className="text-xl font-bold tracking-widest text-white">DIRECTIVES</h2>
                     <button onClick={handleCloseHelp} className="text-neutral-400 hover:text-white">
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="space-y-8 font-mono text-xs text-neutral-300">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-8 font-mono text-xs text-neutral-300 custom-scrollbar">
+                    
+                    {/* Visual Identification */}
                     <div>
-                        <h3 className="text-white font-bold mb-2 tracking-wider text-sm">OBJECTIVE</h3>
+                        <h3 className="text-white font-bold mb-4 tracking-wider text-sm uppercase">Identification</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-12 h-12 relative">
+                                    <Tile type={TileType.PLAYER} />
+                                </div>
+                                <span className="text-[10px] font-bold text-white uppercase">Unit</span>
+                            </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-12 h-12 p-1">
+                                    <Tile type={TileType.TARGET} />
+                                </div>
+                                <span className="text-[10px] font-bold text-cyan-400 uppercase">Goal</span>
+                            </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-12 h-12 p-1">
+                                    <Tile type={TileType.WALL} />
+                                </div>
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase">Threat</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="text-white font-bold mb-2 tracking-wider text-sm uppercase">Mission</h3>
                         <p className="leading-relaxed text-neutral-400">
-                            Navigate the <span className="text-white font-bold">WHITE UNIT</span> to the <span className="text-cyan-400 font-bold">CYAN TARGET</span>. 
+                            Navigate the <span className="text-white font-bold">UNIT</span> to the <span className="text-cyan-400 font-bold">GOAL</span>. 
                             <br/>Each success resets the clock and increases difficulty.
                         </p>
                     </div>
 
                     <div>
-                         <h3 className="text-white font-bold mb-2 tracking-wider text-sm">CONTROLS</h3>
+                         <h3 className="text-white font-bold mb-4 tracking-wider text-sm uppercase">Controls</h3>
                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800">
-                                <div className="text-center mb-1 font-bold text-neutral-500">DESKTOP</div>
-                                <div className="text-center text-white">ARROW KEYS</div>
-                                <div className="text-center text-[9px] text-neutral-600 mt-1">WASD SUPPORTED</div>
+                            
+                            {/* Desktop Visuals */}
+                            <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800 flex flex-col items-center">
+                                <div className="text-center mb-2 font-bold text-neutral-500 text-[10px]">DESKTOP</div>
+                                <div className="h-8 flex items-end justify-center gap-1 mb-2">
+                                    <div className="w-6 h-6 border border-neutral-600 flex items-center justify-center">
+                                         <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] border-b-white/50"></div>
+                                    </div>
+                                    <div className="w-6 h-6 border border-neutral-600 flex items-center justify-center">
+                                         <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-white/50"></div>
+                                    </div>
+                                    <div className="w-6 h-6 border border-neutral-600 flex items-center justify-center">
+                                         <div className="w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-r-[4px] border-r-white/50"></div>
+                                    </div>
+                                </div>
+                                <div className="text-center text-white text-[10px] font-bold">ARROWS / WASD</div>
                             </div>
-                            <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800">
-                                <div className="text-center mb-1 font-bold text-neutral-500">MOBILE</div>
-                                <div className="text-center text-white">SWIPE</div>
-                                <div className="text-center text-[9px] text-neutral-600 mt-1">ANYWHERE ON SCREEN</div>
+
+                            {/* Mobile Visuals */}
+                            <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800 flex flex-col items-center">
+                                <div className="text-center mb-2 font-bold text-neutral-500 text-[10px]">MOBILE</div>
+                                <div className="relative w-16 h-8 bg-neutral-800/50 border border-neutral-700 rounded mb-2 flex items-center justify-center overflow-hidden">
+                                    <div 
+                                        className="w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                                        style={{ animation: 'visual-swipe 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite' }}
+                                    ></div>
+                                </div>
+                                <div className="text-center text-white text-[10px] font-bold">SWIPE</div>
+                                <div className="text-center text-[9px] text-neutral-600 mt-1">ANYWHERE</div>
                             </div>
+
                          </div>
                     </div>
 
                     <div>
-                        <h3 className="text-white font-bold mb-2 tracking-wider text-sm">PROTOCOLS</h3>
+                        <h3 className="text-white font-bold mb-2 tracking-wider text-sm uppercase">Protocols</h3>
                         <ul className="space-y-3">
                             <li className="flex gap-3">
                                 <span className="text-neutral-500 font-bold">01</span>
@@ -190,7 +248,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
                     </div>
                 </div>
 
-                <div className="mt-12">
+                <div className="mt-8 shrink-0">
                     <Button fullWidth variant="primary" size="sm" onClick={handleCloseHelp}>ACKNOWLEDGE</Button>
                 </div>
              </div>
