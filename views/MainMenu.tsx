@@ -31,22 +31,38 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
 
   return (
     <div className="flex flex-col items-center min-h-screen w-full max-w-md mx-auto p-8 font-sans relative">
+      <style>{`
+        @keyframes intro-logo {
+          0% { opacity: 0; transform: scale(0.95) translateY(10px); filter: blur(10px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+        @keyframes intro-subtitle {
+          0% { opacity: 0; letter-spacing: 1.5em; filter: blur(4px); }
+          100% { opacity: 1; letter-spacing: 0.6em; filter: blur(0); }
+        }
+      `}</style>
       
       {/* Main Content Wrapper for Vertical Centering */}
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         
         {/* Sleek Minimalist Header */}
-        <div className="flex flex-col items-center mb-20 select-none animate-in fade-in slide-in-from-top-8 duration-700">
-          <h1 className="text-8xl md:text-9xl font-bold text-white tracking-tighter">
+        <div className="flex flex-col items-center mb-20 select-none">
+          <h1 
+            className="text-8xl md:text-9xl font-bold text-white tracking-tighter"
+            style={{ animation: 'intro-logo 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+          >
             VECTOR
           </h1>
-          <span className="mt-6 text-[10px] font-mono font-medium text-neutral-500 tracking-[0.8em] uppercase">
+          <span 
+            className="mt-6 text-[10px] font-mono font-medium text-neutral-500 uppercase opacity-0"
+            style={{ animation: 'intro-subtitle 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards' }}
+          >
             Precision Challenge
           </span>
         </div>
 
         {/* Menu Actions */}
-        <div className="flex flex-col gap-4 w-full max-w-[320px] animate-in fade-in zoom-in-95 duration-500 delay-150">
+        <div className="flex flex-col gap-4 w-full max-w-[320px] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-both opacity-0">
           <Button 
             variant="primary" 
             size="lg" 
@@ -58,7 +74,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           >
             <div className="flex items-center justify-between w-full px-2">
               <span>RUN</span>
-              <span className="text-[10px] font-mono font-normal text-neutral-600 group-hover:text-white transition-colors">
+              <span className="text-[10px] font-mono font-normal text-neutral-500 group-hover:text-neutral-800 transition-colors">
                 BEST {highScores[GameMode.CLASSIC] || 0}
               </span>
             </div>
@@ -83,7 +99,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </div>
 
         {/* Dynamic Description Area */}
-        <div className="h-12 mt-10 flex items-center justify-center animate-in fade-in duration-700 delay-300">
+        <div className="h-12 mt-10 flex items-center justify-center animate-in fade-in duration-700 delay-700 fill-mode-both opacity-0">
           <span className="text-[10px] font-mono text-neutral-500 tracking-widest text-center max-w-[200px] leading-tight uppercase">
               {activeDesc}
           </span>
@@ -91,7 +107,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
       </div>
       
       {/* Footer Actions */}
-      <div className="mt-auto pt-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+      <div className="mt-auto pt-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-1000 fill-mode-both opacity-0">
         <button 
             onClick={handleHelpClick}
             className="text-neutral-600 hover:text-white transition-colors flex flex-col items-center gap-2 group"
@@ -101,7 +117,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </button>
 
         <div className="text-neutral-900 text-[9px] font-mono select-none">
-          SYS.V.3.4
+          SYS.V.3.5
         </div>
       </div>
 
