@@ -129,8 +129,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
             <span className="text-[9px] font-bold tracking-widest uppercase">How to Play</span>
         </button>
 
-        <div className="text-neutral-900 text-[9px] font-mono select-none">
-          SYS.V.3.6
+        <div className="flex flex-col items-center gap-1">
+            <div className="text-neutral-800 text-[10px] font-bold tracking-widest uppercase">
+                CREATED BY ZENDEVVE
+            </div>
+            <div className="text-neutral-900 text-[9px] font-mono select-none">
+                SYS.V.3.7
+            </div>
         </div>
       </div>
 
