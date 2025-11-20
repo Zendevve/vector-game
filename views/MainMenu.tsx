@@ -1,10 +1,8 @@
-
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
 import { GameMode } from '../types';
 import { HighScores } from '../utils/storage';
-import { X, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
-import { soundManager } from '../utils/sound';
+import { X, HelpCircle } from 'lucide-react';
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
@@ -24,78 +22,76 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
   };
 
   const handleHelpClick = () => {
-      soundManager.playClick();
       setShowHelp(true);
   };
 
   const handleCloseHelp = () => {
-      soundManager.playClick();
       setShowHelp(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-md mx-auto p-8 relative">
+    <div className="flex flex-col items-center min-h-screen w-full max-w-md mx-auto p-8 font-sans relative">
       
-      {/* Header */}
-      <div className="mb-24 text-center animate-in fade-in slide-in-from-top-8 duration-700 select-none">
-        <h1 className="text-8xl font-black text-white mb-4 tracking-tighter leading-none">
-          VECTOR
-        </h1>
-        <div className="flex items-center justify-center gap-3 opacity-60">
-            <div className="h-[1px] w-6 bg-white"></div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.4em] text-white">
-                Precision Challenge
-            </span>
-            <div className="h-[1px] w-6 bg-white"></div>
+      {/* Main Content Wrapper for Vertical Centering */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
+        
+        {/* Sleek Minimalist Header */}
+        <div className="flex flex-col items-center mb-16 select-none animate-in fade-in slide-in-from-top-8 duration-700">
+          <h1 className="text-7xl font-bold text-white tracking-tight">
+            VECTOR
+          </h1>
+          <span className="mt-4 text-[10px] font-mono font-medium text-neutral-500 tracking-[0.6em] uppercase">
+            Precision Challenge
+          </span>
+        </div>
+
+        {/* Menu Actions */}
+        <div className="flex flex-col gap-4 w-full max-w-[280px] animate-in fade-in zoom-in-95 duration-500 delay-150">
+          <Button 
+            variant="primary" 
+            size="lg" 
+            fullWidth 
+            onClick={() => onStartGame(GameMode.CLASSIC)}
+            onMouseEnter={() => handleMouseEnter("REACH THE TARGET. AVOID WALLS. BE QUICK.")}
+            onMouseLeave={handleMouseLeave}
+            className="relative group"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span>RUN</span>
+              <span className="text-[10px] font-mono font-normal text-neutral-400 group-hover:text-black transition-colors">
+                BEST {highScores[GameMode.CLASSIC] || 0}
+              </span>
+            </div>
+          </Button>
+          
+          <Button 
+            variant="danger" 
+            size="lg" 
+            fullWidth 
+            onClick={() => onStartGame(GameMode.LAVA)}
+            onMouseEnter={() => handleMouseEnter("EXTREME HAZARD. WALLS KILL. VOID FALLS FATAL.")}
+            onMouseLeave={handleMouseLeave}
+            className="relative group"
+          >
+             <div className="flex items-center justify-between w-full">
+              <span>FLOOR IS LAVA</span>
+              <span className="text-[10px] font-mono font-normal text-red-400 group-hover:text-red-100 transition-colors">
+                BEST {highScores[GameMode.LAVA] || 0}
+              </span>
+            </div>
+          </Button>
+        </div>
+
+        {/* Dynamic Description Area */}
+        <div className="h-12 mt-8 flex items-center justify-center animate-in fade-in duration-700 delay-300">
+          <span className="text-[10px] font-mono text-neutral-500 tracking-widest text-center max-w-[200px] leading-tight uppercase">
+              {activeDesc}
+          </span>
         </div>
       </div>
-
-      {/* Menu Actions */}
-      <div className="flex flex-col gap-4 w-full max-w-[280px] animate-in fade-in zoom-in-95 duration-500 delay-150">
-        <Button 
-          variant="primary" 
-          size="lg" 
-          fullWidth 
-          onClick={() => onStartGame(GameMode.CLASSIC)}
-          onMouseEnter={() => handleMouseEnter("REACH THE TARGET. AVOID WALLS. BE QUICK.")}
-          onMouseLeave={handleMouseLeave}
-          className="relative group"
-        >
-          <div className="flex items-center justify-between w-full">
-            <span>RUN</span>
-            <span className="text-[10px] font-mono font-normal text-neutral-400 group-hover:text-black transition-colors">
-              BEST {highScores[GameMode.CLASSIC] || 0}
-            </span>
-          </div>
-        </Button>
-        
-        <Button 
-          variant="danger" 
-          size="lg" 
-          fullWidth 
-          onClick={() => onStartGame(GameMode.LAVA)}
-          onMouseEnter={() => handleMouseEnter("EXTREME HAZARD. WALLS KILL. VOID FALLS FATAL.")}
-          onMouseLeave={handleMouseLeave}
-          className="relative group"
-        >
-           <div className="flex items-center justify-between w-full">
-            <span>FLOOR IS LAVA</span>
-            <span className="text-[10px] font-mono font-normal text-red-400 group-hover:text-red-100 transition-colors">
-              BEST {highScores[GameMode.LAVA] || 0}
-            </span>
-          </div>
-        </Button>
-      </div>
-
-      {/* Dynamic Description Area */}
-      <div className="h-12 mt-8 flex items-center justify-center animate-in fade-in duration-700 delay-300">
-        <span className="text-[10px] font-mono text-neutral-500 tracking-widest text-center max-w-[200px] leading-tight uppercase">
-            {activeDesc}
-        </span>
-      </div>
       
-      {/* Footer Actions */}
-      <div className="absolute bottom-12 flex gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+      {/* Footer Actions - Pushed to bottom with standard flow to avoid overlap */}
+      <div className="mt-auto pt-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
         <button 
             onClick={handleHelpClick}
             className="text-neutral-600 hover:text-white transition-colors flex flex-col items-center gap-2 group"
@@ -103,11 +99,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
             <HelpCircle size={20} className="group-hover:scale-110 transition-transform" />
             <span className="text-[9px] font-bold tracking-widest uppercase">How to Play</span>
         </button>
-      </div>
 
-      {/* Version */}
-      <div className="absolute bottom-4 text-neutral-900 text-[9px] font-mono">
-        SYS.V.3.1
+        <div className="text-neutral-900 text-[9px] font-mono select-none">
+          SYS.V.3.2
+        </div>
       </div>
 
       {/* Help Modal */}
@@ -170,4 +165,3 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
     </div>
   );
 };
-    

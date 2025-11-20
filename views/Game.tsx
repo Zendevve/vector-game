@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
 import { TileType, GameMode } from '../types';
-import { soundManager } from '../utils/sound';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 
 interface GameProps {
@@ -195,7 +193,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
   // Start Game / Restart Logic
   const initializeGame = useCallback(() => {
-    soundManager.playStart();
     const startLevel = 1;
     const startParams = calculateDifficulty(startLevel);
     
@@ -256,7 +253,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const handleGameOver = (reason?: { title: string, desc: string }) => {
     stopTimer();
     setIsPlaying(false);
-    soundManager.playGameOver();
     
     const finalScore = scoreRef.current;
     
@@ -289,7 +285,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     // CHECK WALLS
     if (walls.has(newIndex)) {
         setHitWallIndex(newIndex);
-        soundManager.playError();
         
         // LAVA MODE: Touching a wall is fatal (Firewall)
         if (mode === GameMode.LAVA) {
@@ -308,8 +303,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     }
 
     if (newIndex === targetIndex) {
-        soundManager.playTap();
-        
         const nextLevel = score + 1;
         setScore(nextLevel);
         
@@ -332,7 +325,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
     } else {
-        soundManager.playMove();
         setPlayerIndex(newIndex);
     }
   }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);

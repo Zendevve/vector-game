@@ -1,33 +1,16 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MainMenu } from './views/MainMenu';
 import { Game } from './views/Game';
 import { ViewState, GameMode } from './types';
 import { Button } from './components/Button';
-import { soundManager } from './utils/sound';
 import { getHighScores, saveHighScore, HighScores } from './utils/storage';
-import { Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
   const [lastScore, setLastScore] = useState<number>(0);
   const [gameOverDetails, setGameOverDetails] = useState<{title: string, desc: string}>({ title: 'Terminated', desc: 'Time limit exceeded' });
-  const [isSoundOn, setIsSoundOn] = useState<boolean>(true);
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
   const [activeMode, setActiveMode] = useState<GameMode>(GameMode.CLASSIC);
-
-  useEffect(() => {
-    const initAudio = () => {
-        soundManager.playStart(); 
-        window.removeEventListener('click', initAudio);
-    };
-    window.addEventListener('click', initAudio);
-    return () => window.removeEventListener('click', initAudio);
-  }, []);
-
-  useEffect(() => {
-    soundManager.setEnabled(isSoundOn);
-  }, [isSoundOn]);
 
   const handleStartGame = (mode: GameMode) => {
     setActiveMode(mode);
@@ -58,23 +41,9 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
-  const toggleSound = () => {
-    setIsSoundOn(!isSoundOn);
-  };
-
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black font-sans">
       
-      {/* Sound Toggle */}
-      <div className="fixed top-6 right-6 z-50">
-        <button 
-            onClick={toggleSound}
-            className={`p-2 rounded-full transition-colors ${isSoundOn ? 'text-white hover:bg-white/10' : 'text-neutral-600 hover:text-white'}`}
-        >
-            {isSoundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
-        </button>
-      </div>
-
       {viewState === ViewState.MENU && (
         <MainMenu onStartGame={handleStartGame} highScores={highScores} />
       )}
