@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
 import { TileType, GameMode } from '../types';
-import { Pause, Play, RotateCcw } from 'lucide-react';
+import { Pause, Play, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface GameProps {
   mode: GameMode;
@@ -94,6 +94,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
   // Visual Effects State
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [swipeFeedback, setSwipeFeedback] = useState<{ direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', id: number } | null>(null);
 
   const timerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
@@ -361,8 +362,12 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         // LAVA MODE: Moving out of bounds is fatal (Void Fall)
         if (mode === GameMode.LAVA) {
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
+        } else {
+            // CLASSIC MODE: Penalty
+            spawnParticles(playerIndex, 'COLLISION');
+            setTimeLeft(prev => Math.max(0, prev - 500)); // 500ms penalty
         }
-        return; // Classic mode just blocks
+        return;
     }
 
     const newIndex = newRow * gridSize + newCol;
@@ -379,6 +384,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
         // Classic Mode: Penalize or Block
+        setTimeLeft(prev => Math.max(0, prev - 500)); // 500ms penalty
+        
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
         hitTimeoutRef.current = window.setTimeout(() => {
             setHitWallIndex(null);
@@ -456,14 +463,26 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     
     if (Math.max(absX, absY) > 30) {
         if (absX > absY) {
+            const dir = diffX > 0 ? 'RIGHT' : 'LEFT';
             movePlayer(diffX > 0 ? 1 : -1, 0);
+            setSwipeFeedback({ direction: dir, id: Date.now() });
         } else {
+            const dir = diffY > 0 ? 'DOWN' : 'UP';
             movePlayer(0, diffY > 0 ? 1 : -1);
+            setSwipeFeedback({ direction: dir, id: Date.now() });
         }
     }
     
     touchStartRef.current = null;
   };
+
+  // Clear swipe feedback after animation
+  useEffect(() => {
+    if (swipeFeedback) {
+        const timer = setTimeout(() => setSwipeFeedback(null), 500);
+        return () => clearTimeout(timer);
+    }
+  }, [swipeFeedback]);
 
   const getGridCols = () => {
     if (gridSize === 3) return 'grid-cols-3';
@@ -478,13 +497,20 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
   return (
     <div 
-        className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans"
+        className="flex flex-col h-screen w-full max-w-md md:max-w-7xl mx-auto bg-[#050505] relative overflow-hidden font-sans"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
     >
-      
+      <style>{`
+        @keyframes swipe-fade {
+          0% { opacity: 0; transform: scale(0.5); }
+          20% { opacity: 1; transform: scale(1.1); }
+          100% { opacity: 0; transform: scale(1.0); }
+        }
+      `}</style>
+
       {/* Minimalist HUD */}
-      <div className="flex justify-between items-end p-8 pb-2">
+      <div className="flex justify-between items-end p-8 pb-2 md:max-w-3xl md:mx-auto md:w-full">
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">GRID</span>
@@ -508,7 +534,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       </div>
 
       {/* Progress Line */}
-      <div className="w-full px-8 mb-8">
+      <div className="w-full px-8 mb-8 md:max-w-3xl md:mx-auto">
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
                 className={`h-full transition-all duration-75 ease-linear ${mode === GameMode.LAVA ? 'bg-red-500' : 'bg-white'}`}
@@ -520,7 +546,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       {/* Game Board */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
         <div 
-            className={`grid ${getGridCols()} w-full aspect-square max-w-[380px] transition-all duration-500 relative`}
+            className={`grid ${getGridCols()} w-full aspect-square max-w-[380px] md:max-w-[600px] lg:max-w-[700px] md:max-h-[65vh] transition-all duration-500 relative`}
             // Remove gap logic here to make percentage calculations precise for animations
             // We will add padding to individual tiles instead
         >
@@ -583,8 +609,29 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
       </div>
 
+      {/* Swipe Feedback Overlay */}
+      {swipeFeedback && (
+        <div 
+            key={swipeFeedback.id}
+            className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none"
+        >
+            <div 
+                className="bg-neutral-900/80 backdrop-blur-sm p-4 border border-white/20 shadow-2xl"
+                style={{ 
+                    animation: 'swipe-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    borderRadius: '100%'
+                }}
+            >
+                {swipeFeedback.direction === 'UP' && <ChevronUp size={32} className="text-white" strokeWidth={3} />}
+                {swipeFeedback.direction === 'DOWN' && <ChevronDown size={32} className="text-white" strokeWidth={3} />}
+                {swipeFeedback.direction === 'LEFT' && <ChevronLeft size={32} className="text-white" strokeWidth={3} />}
+                {swipeFeedback.direction === 'RIGHT' && <ChevronRight size={32} className="text-white" strokeWidth={3} />}
+            </div>
+        </div>
+      )}
+
       {/* Minimal Bottom Controls */}
-      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto">
+      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto md:max-w-3xl md:mx-auto md:w-full">
         <div className="flex gap-8 items-center">
             <button 
                 onClick={initializeGame}
