@@ -40,6 +40,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           0% { opacity: 0; letter-spacing: 1.5em; filter: blur(4px); }
           100% { opacity: 1; letter-spacing: 0.6em; filter: blur(0); }
         }
+        @keyframes intro-fade-up {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
       
       {/* Main Content Wrapper for Vertical Centering */}
@@ -62,7 +66,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </div>
 
         {/* Menu Actions */}
-        <div className="flex flex-col gap-4 w-full max-w-[320px] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-both opacity-0">
+        <div 
+          className="flex flex-col gap-4 w-full max-w-[320px]"
+          style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards', opacity: 0 }}
+        >
           <Button 
             variant="primary" 
             size="lg" 
@@ -99,7 +106,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </div>
 
         {/* Dynamic Description Area */}
-        <div className="h-12 mt-10 flex items-center justify-center animate-in fade-in duration-700 delay-700 fill-mode-both opacity-0">
+        <div 
+          className="h-12 mt-10 flex items-center justify-center"
+          style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards', opacity: 0 }}
+        >
           <span className="text-[10px] font-mono text-neutral-500 tracking-widest text-center max-w-[200px] leading-tight uppercase">
               {activeDesc}
           </span>
@@ -107,7 +117,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
       </div>
       
       {/* Footer Actions */}
-      <div className="mt-auto pt-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-1000 fill-mode-both opacity-0">
+      <div 
+        className="mt-auto pt-8 flex flex-col items-center gap-6"
+        style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards', opacity: 0 }}
+      >
         <button 
             onClick={handleHelpClick}
             className="text-neutral-600 hover:text-white transition-colors flex flex-col items-center gap-2 group"
