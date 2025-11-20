@@ -3,7 +3,7 @@ import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
 import { TileType } from '../types';
 import { soundManager } from '../utils/sound';
-import { Pause, Play, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pause, Play, RotateCcw } from 'lucide-react';
 
 interface GameProps {
   onEndGame: (score: number) => void;
@@ -29,6 +29,7 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu }) => {
   const [walls, setWalls] = useState<Set<number>>(new Set());
 
   const timerRef = useRef<number | null>(null);
+  const touchStartRef = useRef<{x: number, y: number} | null>(null);
 
   // Helper: BFS to check if path exists
   const isSolvable = (size: number, start: number, end: number, currentWalls: Set<number>) => {
@@ -274,6 +275,40 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [movePlayer, isPlaying, isPaused, handleRestart]);
 
+  // Swipe Handling
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    
+    const diffX = touchEndX - touchStartRef.current.x;
+    const diffY = touchEndY - touchStartRef.current.y;
+    
+    const absX = Math.abs(diffX);
+    const absY = Math.abs(diffY);
+    
+    // Minimum swipe distance threshold to avoid accidental taps
+    if (Math.max(absX, absY) > 30) {
+        if (absX > absY) {
+            // Horizontal
+            movePlayer(diffX > 0 ? 1 : -1, 0);
+        } else {
+            // Vertical
+            movePlayer(0, diffY > 0 ? 1 : -1);
+        }
+    }
+    
+    touchStartRef.current = null;
+  };
+
   const getGridCols = () => {
     if (gridSize === 3) return 'grid-cols-3';
     if (gridSize === 4) return 'grid-cols-4';
@@ -281,18 +316,12 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu }) => {
     return 'grid-cols-3';
   };
 
-  // D-Pad Button Component
-  const DPadButton = ({ onClick, icon: Icon }: { onClick: any, icon: any }) => (
-    <button 
-        className="w-full h-full bg-neutral-900 border border-neutral-800 rounded-lg flex items-center justify-center active:bg-white active:text-black active:border-white transition-colors touch-none text-neutral-500"
-        onPointerDown={(e) => { e.preventDefault(); onClick(); }}
-    >
-        <Icon size={24} strokeWidth={2.5} />
-    </button>
-  );
-
   return (
-    <div className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans">
+    <div 
+        className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+    >
       
       {/* Minimalist HUD */}
       <div className="flex justify-between items-end p-8 pb-2">
@@ -334,19 +363,8 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu }) => {
         </div>
       </div>
 
-      {/* Minimal Controls */}
-      <div className="p-8 pb-10 flex flex-col items-center gap-6">
-        {/* Hidden on desktop, sleek on mobile */}
-        <div className="grid grid-cols-3 gap-2 w-48 h-32">
-            <div />
-            <DPadButton icon={ChevronUp} onClick={() => movePlayer(0, -1)} />
-            <div />
-            
-            <DPadButton icon={ChevronLeft} onClick={() => movePlayer(-1, 0)} />
-            <DPadButton icon={ChevronDown} onClick={() => movePlayer(0, 1)} />
-            <DPadButton icon={ChevronRight} onClick={() => movePlayer(1, 0)} />
-        </div>
-
+      {/* Minimal Bottom Controls */}
+      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto">
         <div className="flex gap-8 items-center">
             <button 
                 onClick={handleRestart}
