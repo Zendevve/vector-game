@@ -14,6 +14,18 @@ interface GameProps {
 // Configuration Constants
 const TIME_DECREMENT_INTERVAL = 10;
 
+// Particle Interface
+interface Particle {
+  id: number;
+  x: number; // % relative to board
+  y: number; // % relative to board
+  vx: number;
+  vy: number;
+  life: number; // 0.0 - 1.0
+  color: string;
+  size: number;
+}
+
 // Adaptive Difficulty Logic
 const calculateDifficulty = (level: number) => {
   let gridSize = 3;
@@ -79,6 +91,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const [targetIndex, setTargetIndex] = useState<number>(0);
   const [walls, setWalls] = useState<Set<number>>(new Set());
   const [hitWallIndex, setHitWallIndex] = useState<number | null>(null);
+
+  // Visual Effects State
+  const [particles, setParticles] = useState<Particle[]>([]);
 
   const timerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
@@ -192,6 +207,64 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setWalls(newWalls);
   }, []);
 
+  // Particle System Logic
+  const spawnParticles = (index: number, type: 'SUCCESS' | 'COLLISION') => {
+    const row = Math.floor(index / gridSize);
+    const col = index % gridSize;
+    
+    // Center of the tile in percentages
+    const tilePercent = 100 / gridSize;
+    const startX = (col * tilePercent) + (tilePercent / 2);
+    const startY = (row * tilePercent) + (tilePercent / 2);
+
+    const count = type === 'SUCCESS' ? 12 : 8;
+    const newParticles: Particle[] = [];
+
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const speed = Math.random() * 0.5 + 0.2; // Random speed
+        
+        newParticles.push({
+            id: Math.random(),
+            x: startX,
+            y: startY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            color: type === 'SUCCESS' 
+                ? (Math.random() > 0.5 ? '#22d3ee' : '#ffffff') // Cyan/White
+                : (Math.random() > 0.5 ? '#ef4444' : '#525252'), // Red/Gray
+            size: Math.random() * 4 + 2 // 2px to 6px
+        });
+    }
+
+    setParticles(prev => [...prev, ...newParticles]);
+  };
+
+  // Particle Animation Loop
+  useEffect(() => {
+    if (particles.length === 0) return;
+
+    let animationFrameId: number;
+
+    const updateParticles = () => {
+        setParticles(prevParticles => {
+            const updated = prevParticles.map(p => ({
+                ...p,
+                x: p.x + p.vx,
+                y: p.y + p.vy,
+                life: p.life - 0.04, // Fade out
+            })).filter(p => p.life > 0);
+            
+            return updated;
+        });
+        animationFrameId = requestAnimationFrame(updateParticles);
+    };
+
+    animationFrameId = requestAnimationFrame(updateParticles);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [particles.length]); // Only re-subscribe if length changes (start/stop)
+
   // Start Game / Restart Logic
   const initializeGame = useCallback(() => {
     const startLevel = 1;
@@ -208,6 +281,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setPlayerIndex(startPlayer);
     generateLevel(startParams.gridSize, startPlayer, startLevel);
     setHitWallIndex(null);
+    setParticles([]);
     isProcessingMove.current = false;
     
     setIsPlaying(true);
@@ -296,6 +370,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     // CHECK WALLS
     if (walls.has(newIndex)) {
         setHitWallIndex(newIndex);
+        spawnParticles(newIndex, 'COLLISION');
         
         // LAVA MODE: Touching a wall is fatal (Firewall)
         if (mode === GameMode.LAVA) {
@@ -314,6 +389,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     }
 
     if (newIndex === targetIndex) {
+        spawnParticles(newIndex, 'SUCCESS');
         const nextLevel = score + 1;
         setScore(nextLevel);
         
@@ -439,7 +515,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
       {/* Game Board */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        <div className={`grid ${getGridCols()} gap-2 w-full aspect-square max-w-[380px] transition-all duration-500`}>
+        <div className={`grid ${getGridCols()} gap-2 w-full aspect-square max-w-[380px] transition-all duration-500 relative`}>
+          
+          {/* Tiles */}
           {Array.from({ length: gridSize * gridSize }).map((_, index) => {
             let type = TileType.EMPTY;
             if (index === playerIndex) type = TileType.PLAYER;
@@ -450,6 +528,23 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
             return <Tile key={index} type={type} isHit={isHit} />;
           })}
+
+          {/* Particles Overlay */}
+          {particles.map(p => (
+            <div
+                key={p.id}
+                className="absolute pointer-events-none rounded-none z-50"
+                style={{
+                    left: `${p.x}%`,
+                    top: `${p.y}%`,
+                    width: `${p.size}px`,
+                    height: `${p.size}px`,
+                    backgroundColor: p.color,
+                    opacity: p.life,
+                    transform: 'translate(-50%, -50%)' // Center anchor
+                }}
+            />
+          ))}
         </div>
       </div>
 
