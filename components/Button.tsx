@@ -18,8 +18,9 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "font-bold tracking-widest uppercase transition-all duration-200 focus:outline-none border select-none rounded-none flex items-center justify-center";
   
   const variants = {
-    primary: "bg-white text-black border-white hover:bg-neutral-200 hover:border-neutral-200 active:scale-[0.99]",
-    secondary: "bg-transparent text-white border-neutral-800 hover:border-white hover:bg-white/5 active:scale-[0.99]",
+    // Changed from solid white to outlined transparent for minimalist look
+    primary: "bg-transparent text-white border-white/20 hover:border-white hover:bg-white/5 active:scale-[0.99]",
+    secondary: "bg-transparent text-neutral-400 border-neutral-800 hover:text-white hover:border-neutral-600 hover:bg-white/5 active:scale-[0.99]",
     danger: "bg-transparent text-red-600 border-red-900/30 hover:border-red-500 hover:bg-red-950/10 active:scale-[0.99]",
     ghost: "bg-transparent text-neutral-500 border-transparent hover:text-white hover:bg-white/5",
   };
@@ -27,7 +28,7 @@ export const Button: React.FC<ButtonProps> = ({
   const sizes = {
     sm: "px-4 py-2 text-[10px]",
     md: "px-6 py-3 text-xs",
-    lg: "px-8 py-5 text-sm",
+    lg: "px-8 py-4 text-sm", // Reduced vertical padding for sleeker look
   };
 
   const width = fullWidth ? "w-full" : "";

@@ -46,7 +46,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </div>
 
         {/* Menu Actions */}
-        <div className="flex flex-col gap-4 w-full max-w-[280px] animate-in fade-in zoom-in-95 duration-500 delay-150">
+        <div className="flex flex-col gap-4 w-full max-w-[320px] animate-in fade-in zoom-in-95 duration-500 delay-150">
           <Button 
             variant="primary" 
             size="lg" 
@@ -58,7 +58,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           >
             <div className="flex items-center justify-between w-full px-2">
               <span>RUN</span>
-              <span className="text-[10px] font-mono font-normal text-neutral-400 group-hover:text-black transition-colors">
+              <span className="text-[10px] font-mono font-normal text-neutral-600 group-hover:text-white transition-colors">
                 BEST {highScores[GameMode.CLASSIC] || 0}
               </span>
             </div>
@@ -75,7 +75,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           >
              <div className="flex items-center justify-between w-full px-2">
               <span>FLOOR IS LAVA</span>
-              <span className="text-[10px] font-mono font-normal text-red-400 group-hover:text-red-100 transition-colors">
+              <span className="text-[10px] font-mono font-normal text-red-900 group-hover:text-red-400 transition-colors">
                 BEST {highScores[GameMode.LAVA] || 0}
               </span>
             </div>
