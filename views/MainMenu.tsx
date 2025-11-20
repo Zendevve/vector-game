@@ -37,7 +37,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         
         {/* Sleek Minimalist Header */}
         <div className="flex flex-col items-center mb-16 select-none animate-in fade-in slide-in-from-top-8 duration-700">
-          <h1 className="text-7xl font-bold text-white tracking-tight">
+          <h1 className="text-8xl md:text-9xl font-bold text-white tracking-tighter">
             VECTOR
           </h1>
           <span className="mt-4 text-[10px] font-mono font-medium text-neutral-500 tracking-[0.6em] uppercase">
@@ -101,7 +101,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </button>
 
         <div className="text-neutral-900 text-[9px] font-mono select-none">
-          SYS.V.3.2
+          SYS.V.3.3
         </div>
       </div>
 
