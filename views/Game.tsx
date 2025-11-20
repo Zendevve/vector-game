@@ -8,6 +8,7 @@ import { Pause, Play, RotateCcw } from 'lucide-react';
 interface GameProps {
   onEndGame: (score: number) => void;
   onBackToMenu: () => void;
+  highScore: number;
 }
 
 // Configuration Constants
@@ -15,7 +16,7 @@ const INITIAL_TIME_LIMIT_MS = 5000;
 const TIME_DECREMENT_INTERVAL = 10;
 const INITIAL_GRID_SIZE = 3;
 
-export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu }) => {
+export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }) => {
   // Game State
   const [gridSize, setGridSize] = useState<number>(INITIAL_GRID_SIZE);
   const [score, setScore] = useState<number>(1); 
@@ -326,7 +327,12 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu }) => {
       {/* Minimalist HUD */}
       <div className="flex justify-between items-end p-8 pb-2">
         <div className="flex flex-col">
-          <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em] mb-1">GRID</span>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">GRID</span>
+            <span className="text-neutral-700 text-[10px] font-bold tracking-wider">
+                BEST {Math.max(score, highScore).toString().padStart(2, '0')}
+            </span>
+          </div>
           <span className="text-5xl font-black text-white tracking-tighter leading-none font-mono">
             {score.toString().padStart(2, '0')}
           </span>

@@ -4,12 +4,15 @@ import { Game } from './views/Game';
 import { ViewState, GameMode } from './types';
 import { Button } from './components/Button';
 import { soundManager } from './utils/sound';
+import { getHighScores, saveHighScore, HighScores } from './utils/storage';
 import { Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
   const [lastScore, setLastScore] = useState<number>(0);
   const [isSoundOn, setIsSoundOn] = useState<boolean>(true);
+  const [highScores, setHighScores] = useState<HighScores>(getHighScores());
+  const [activeMode, setActiveMode] = useState<GameMode>(GameMode.CLASSIC);
 
   useEffect(() => {
     const initAudio = () => {
@@ -25,11 +28,17 @@ const App: React.FC = () => {
   }, [isSoundOn]);
 
   const handleStartGame = (mode: GameMode) => {
+    setActiveMode(mode);
     setViewState(ViewState.GAME);
   };
 
   const handleEndGame = (score: number) => {
     setLastScore(score);
+    
+    // Save high score if applicable
+    const newScores = saveHighScore(activeMode, score);
+    setHighScores(newScores);
+
     setViewState(ViewState.GAME_OVER);
   };
 
@@ -59,11 +68,15 @@ const App: React.FC = () => {
       </div>
 
       {viewState === ViewState.MENU && (
-        <MainMenu onStartGame={handleStartGame} />
+        <MainMenu onStartGame={handleStartGame} highScores={highScores} />
       )}
 
       {viewState === ViewState.GAME && (
-        <Game onEndGame={handleEndGame} onBackToMenu={handleBackToMenu} />
+        <Game 
+          onEndGame={handleEndGame} 
+          onBackToMenu={handleBackToMenu} 
+          highScore={highScores[activeMode]}
+        />
       )}
 
       {viewState === ViewState.GAME_OVER && (
@@ -85,7 +98,7 @@ const App: React.FC = () => {
                 <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-lg flex flex-col justify-between">
                     <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Rating</div>
                     <div className="text-xl font-bold text-cyan-500">
-                        {lastScore > 20 ? 'S-TIER' : lastScore > 10 ? 'A-TIER' : 'C-TIER'}
+                        {lastScore > highScores[activeMode] ? 'NEW PB' : (lastScore > 20 ? 'S-TIER' : lastScore > 10 ? 'A-TIER' : 'C-TIER')}
                     </div>
                 </div>
             </div>

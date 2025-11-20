@@ -1,12 +1,14 @@
 import React from 'react';
 import { Button } from '../components/Button';
 import { GameMode } from '../types';
+import { HighScores } from '../utils/storage';
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
+  highScores: HighScores;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-md mx-auto p-8 relative">
       
@@ -27,8 +29,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
           size="lg" 
           fullWidth 
           onClick={() => onStartGame(GameMode.CLASSIC)}
+          className="relative group"
         >
-          Run
+          <div className="flex items-center justify-between w-full">
+            <span>RUN</span>
+            <span className="text-[10px] font-mono font-normal text-neutral-400 group-hover:text-black transition-colors">
+              BEST {highScores[GameMode.CLASSIC]}
+            </span>
+          </div>
         </Button>
         
         <Button 
@@ -36,8 +44,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
           size="lg" 
           fullWidth 
           onClick={() => onStartGame(GameMode.CHALLENGE)}
+          className="relative group"
         >
-          Hardcore
+           <div className="flex items-center justify-between w-full">
+            <span>HARDCORE</span>
+            <span className="text-[10px] font-mono font-normal text-neutral-600 group-hover:text-white transition-colors">
+              BEST {highScores[GameMode.CHALLENGE]}
+            </span>
+          </div>
         </Button>
         
         <Button 
@@ -45,8 +59,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
           size="lg" 
           fullWidth 
           onClick={() => onStartGame(GameMode.LAVA)}
+          className="relative group"
         >
-          Survival
+           <div className="flex items-center justify-between w-full">
+            <span>SURVIVAL</span>
+            <span className="text-[10px] font-mono font-normal text-neutral-600 group-hover:text-white transition-colors">
+              BEST {highScores[GameMode.LAVA]}
+            </span>
+          </div>
         </Button>
       </div>
       
@@ -58,7 +78,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
 
       {/* Version */}
       <div className="absolute bottom-8 text-neutral-800 text-[10px] font-mono">
-        SYS.V.2.0
+        SYS.V.2.1
       </div>
     </div>
   );
