@@ -81,7 +81,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           >
             <div className="flex items-center justify-between w-full px-2">
               <span>RUN</span>
-              <span className="text-[10px] font-mono font-normal text-neutral-500 group-hover:text-neutral-800 transition-colors">
+              <span className="text-[10px] font-mono font-normal text-neutral-500 group-hover:text-white transition-colors">
                 BEST {highScores[GameMode.CLASSIC] || 0}
               </span>
             </div>
@@ -130,7 +130,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
         </button>
 
         <div className="text-neutral-900 text-[9px] font-mono select-none">
-          SYS.V.3.5
+          SYS.V.3.6
         </div>
       </div>
 
