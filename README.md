@@ -1,20 +1,53 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# VECTOR
+### PRECISION GRID NAVIGATION SYSTEM
 
-# Run and deploy your AI Studio app
+**VECTOR** is a high-speed, minimalist puzzle challenge designed to test reflex and cognitive precision. Navigate the unit to the target destination under strict time constraints while adapting to dynamically shifting grid parameters.
 
-This contains everything you need to run your app locally.
+## // PROTOCOLS
 
-View your app in AI Studio: https://ai.studio/apps/drive/1cmabTzFzFI3p1kR6fILFUguOGWFprqze
+### 01 RUN
+Standard operation mode. Navigate the **UNIT** (White) to the **GOAL** (Cyan).
+- Walls act as physical barriers.
+- Collisions with walls or grid borders result in a time penalty.
+- Difficulty adapts via grid expansion (3x3 to 5x5) and reduced time limits.
 
-## Run Locally
+### 02 FLOOR IS LAVA
+Zero tolerance environment.
+- Wall contact results in immediate termination (Incineration).
+- Moving out of bounds results in immediate termination (Void Fall).
+- Precision is mandatory.
 
-**Prerequisites:**  Node.js
+## // CONTROLS
 
+| Interface | Input Method |
+| :--- | :--- |
+| **Desktop** | `WASD` or `Arrow Keys` for orthogonal movement. |
+| **Mobile** | Swipe gestures anywhere on screen. |
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## // SYSTEM ARCHITECTURE
+
+Constructed with a focus on performance, responsiveness, and a stark brutalist aesthetic.
+
+- **Core**: React 19 + TypeScript
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Persistence**: Local Storage for high score retention
+
+## // INITIALIZATION
+
+To deploy the system locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Initialize development server
+npm run dev
+
+# Compile for production
+npm run build
+```
+
+---
+*System Version 3.7*
+*Created by ZenDevve*
