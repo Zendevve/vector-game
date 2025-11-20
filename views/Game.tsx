@@ -472,6 +472,10 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     return 'grid-cols-3';
   };
 
+  // Calculate Player Animation Position
+  const playerRow = Math.floor(playerIndex / gridSize);
+  const playerCol = playerIndex % gridSize;
+
   return (
     <div 
         className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans"
@@ -515,12 +519,17 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
       {/* Game Board */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        <div className={`grid ${getGridCols()} gap-2 w-full aspect-square max-w-[380px] transition-all duration-500 relative`}>
+        <div 
+            className={`grid ${getGridCols()} w-full aspect-square max-w-[380px] transition-all duration-500 relative`}
+            // Remove gap logic here to make percentage calculations precise for animations
+            // We will add padding to individual tiles instead
+        >
           
-          {/* Tiles */}
+          {/* Static Grid (Background, Target, Walls) */}
           {Array.from({ length: gridSize * gridSize }).map((_, index) => {
             let type = TileType.EMPTY;
-            if (index === playerIndex) type = TileType.PLAYER;
+            // Don't render PLAYER in the grid anymore, it is an overlay now
+            if (index === playerIndex) type = TileType.EMPTY; 
             else if (index === targetIndex) type = TileType.TARGET;
             else if (walls.has(index)) type = TileType.WALL;
             
@@ -535,8 +544,25 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             
             const isDanger = mode === GameMode.LAVA && walls.has(index) && isAdjacent;
 
-            return <Tile key={index} type={type} isHit={isHit} isDanger={isDanger} />;
+            return (
+                <div key={index} className="w-full h-full p-1">
+                    <Tile type={type} isHit={isHit} isDanger={isDanger} />
+                </div>
+            );
           })}
+
+          {/* Animated Player Overlay */}
+          <div 
+             className="absolute transition-all duration-100 ease-out p-1 z-30"
+             style={{
+                 width: `${100 / gridSize}%`,
+                 height: `${100 / gridSize}%`,
+                 left: `${(playerCol / gridSize) * 100}%`,
+                 top: `${(playerRow / gridSize) * 100}%`,
+             }}
+          >
+              <Tile type={TileType.PLAYER} />
+          </div>
 
           {/* Particles Overlay */}
           {particles.map(p => (
