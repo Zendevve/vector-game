@@ -83,6 +83,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const timerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
   const hitTimeoutRef = useRef<number | null>(null);
+  const isProcessingMove = useRef<boolean>(false);
 
   // Sync Ref with State
   useEffect(() => {
@@ -207,6 +208,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setPlayerIndex(startPlayer);
     generateLevel(startParams.gridSize, startPlayer, startLevel);
     setHitWallIndex(null);
+    isProcessingMove.current = false;
     
     setIsPlaying(true);
     setIsPaused(false);
@@ -265,6 +267,15 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   // Movement & Progression
   const movePlayer = useCallback((dx: number, dy: number) => {
     if (!isPlaying || isPaused) return;
+    
+    // Prevent diagonal/simultaneous inputs
+    if (isProcessingMove.current) return;
+    isProcessingMove.current = true;
+    
+    // Reset input lock after tile transition duration
+    setTimeout(() => {
+        isProcessingMove.current = false;
+    }, 100);
 
     const row = Math.floor(playerIndex / gridSize);
     const col = playerIndex % gridSize;
