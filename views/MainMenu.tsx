@@ -5,10 +5,11 @@ import { HighScores } from '../utils/storage';
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
+  onOpenSettings: () => void;
   highScores: HighScores;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenSettings, highScores }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-md mx-auto p-8 relative">
       
@@ -73,12 +74,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
       {/* Footer Actions */}
       <div className="mt-8 flex gap-4">
         <button className="text-neutral-600 text-xs hover:text-white transition-colors uppercase font-bold tracking-widest">Profile</button>
-        <button className="text-neutral-600 text-xs hover:text-white transition-colors uppercase font-bold tracking-widest">Settings</button>
+        <button 
+          onClick={onOpenSettings}
+          className="text-neutral-600 text-xs hover:text-white transition-colors uppercase font-bold tracking-widest"
+        >
+          Settings
+        </button>
       </div>
 
       {/* Version */}
       <div className="absolute bottom-8 text-neutral-800 text-[10px] font-mono">
-        SYS.V.2.1
+        SYS.V.2.2
       </div>
     </div>
   );

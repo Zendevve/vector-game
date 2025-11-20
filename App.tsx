@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { MainMenu } from './views/MainMenu';
 import { Game } from './views/Game';
+import { Settings } from './views/Settings';
 import { ViewState, GameMode } from './types';
 import { Button } from './components/Button';
 import { soundManager } from './utils/sound';
-import { getHighScores, saveHighScore, HighScores } from './utils/storage';
-import { Volume2, VolumeX } from 'lucide-react';
+import { getHighScores, saveHighScore, HighScores, getSettings, saveSettings, GameSettings } from './utils/storage';
+import { Settings as SettingsIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
   const [lastScore, setLastScore] = useState<number>(0);
-  const [isSoundOn, setIsSoundOn] = useState<boolean>(true);
+  
+  // Settings State
+  const [settings, setSettings] = useState<GameSettings>(getSettings());
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
   const [activeMode, setActiveMode] = useState<GameMode>(GameMode.CLASSIC);
 
@@ -23,9 +28,12 @@ const App: React.FC = () => {
     return () => window.removeEventListener('click', initAudio);
   }, []);
 
+  // Apply Settings
   useEffect(() => {
-    soundManager.setEnabled(isSoundOn);
-  }, [isSoundOn]);
+    soundManager.setEnabled(settings.soundEnabled);
+    soundManager.setVolume(settings.volume);
+    saveSettings(settings);
+  }, [settings]);
 
   const handleStartGame = (mode: GameMode) => {
     setActiveMode(mode);
@@ -35,7 +43,6 @@ const App: React.FC = () => {
   const handleEndGame = (score: number) => {
     setLastScore(score);
     
-    // Save high score if applicable
     const newScores = saveHighScore(activeMode, score);
     setHighScores(newScores);
 
@@ -50,32 +57,50 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
-  const toggleSound = () => {
-    setIsSoundOn(!isSoundOn);
+  const updateSettings = (newSettings: Partial<GameSettings>) => {
+      setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black font-sans">
       
-      {/* Sound Toggle */}
-      <div className="fixed top-6 right-6 z-50">
+      {/* Global Settings Button */}
+      <div className="fixed top-6 right-6 z-40">
         <button 
-            onClick={toggleSound}
-            className={`p-2 rounded-full transition-colors ${isSoundOn ? 'text-white hover:bg-white/10' : 'text-neutral-600 hover:text-white'}`}
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2 rounded-full text-neutral-600 hover:text-white hover:bg-white/10 transition-all"
+            aria-label="Open Settings"
         >
-            {isSoundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            <SettingsIcon size={24} />
         </button>
       </div>
 
+      <Settings 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        volume={settings.volume}
+        onVolumeChange={(v) => updateSettings({ volume: v })}
+        soundEnabled={settings.soundEnabled}
+        onSoundEnabledChange={(v) => updateSettings({ soundEnabled: v })}
+        hapticsEnabled={settings.hapticsEnabled}
+        onHapticsEnabledChange={(v) => updateSettings({ hapticsEnabled: v })}
+      />
+
       {viewState === ViewState.MENU && (
-        <MainMenu onStartGame={handleStartGame} highScores={highScores} />
+        <MainMenu 
+            onStartGame={handleStartGame} 
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            highScores={highScores} 
+        />
       )}
 
       {viewState === ViewState.GAME && (
         <Game 
           onEndGame={handleEndGame} 
           onBackToMenu={handleBackToMenu} 
+          onOpenSettings={() => setIsSettingsOpen(true)}
           highScore={highScores[activeMode]}
+          hapticsEnabled={settings.hapticsEnabled}
         />
       )}
 

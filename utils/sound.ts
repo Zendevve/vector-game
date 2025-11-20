@@ -2,6 +2,7 @@
 class SoundManager {
   private audioCtx: AudioContext | null = null;
   private enabled: boolean = true;
+  private masterVolume: number = 0.5;
 
   constructor() {
     try {
@@ -16,6 +17,10 @@ class SoundManager {
 
   public setEnabled(enabled: boolean) {
     this.enabled = enabled;
+  }
+
+  public setVolume(volume: number) {
+    this.masterVolume = Math.max(0, Math.min(1, volume));
   }
 
   public playMove() {
@@ -63,7 +68,10 @@ class SoundManager {
     osc.type = type;
     osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
     
-    gain.gain.setValueAtTime(volume, this.audioCtx.currentTime);
+    // Apply master volume to the requested volume
+    const effectiveVolume = volume * this.masterVolume;
+
+    gain.gain.setValueAtTime(effectiveVolume, this.audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
 
     osc.connect(gain);

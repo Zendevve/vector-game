@@ -3,24 +3,82 @@ import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
 import { TileType } from '../types';
 import { soundManager } from '../utils/sound';
-import { Pause, Play, RotateCcw } from 'lucide-react';
+import { Pause, Play, RotateCcw, Settings } from 'lucide-react';
 
 interface GameProps {
   onEndGame: (score: number) => void;
   onBackToMenu: () => void;
+  onOpenSettings: () => void;
   highScore: number;
+  hapticsEnabled: boolean;
 }
 
 // Configuration Constants
-const INITIAL_TIME_LIMIT_MS = 5000; 
 const TIME_DECREMENT_INTERVAL = 10;
-const INITIAL_GRID_SIZE = 3;
 
-export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }) => {
+// Adaptive Difficulty Logic
+const calculateDifficulty = (level: number) => {
+  let gridSize = 3;
+  
+  // Grid Size scaling
+  if (level >= 25) gridSize = 5;
+  else if (level >= 10) gridSize = 4;
+
+  // Time Limit Scaling (ms)
+  let timeLimit = 5000;
+  if (gridSize === 3) {
+      // Levels 1-9: 5.0s -> 4.2s
+      timeLimit = Math.max(2000, 5000 - ((level - 1) * 100));
+  } else if (gridSize === 4) {
+      // Levels 10-24: Reset to 5.5s -> 4.1s (Compensate for larger grid)
+      timeLimit = Math.max(2000, 5500 - ((level - 10) * 100));
+  } else {
+      // Levels 25+: Reset to 5.0s -> 2.0s (High speed)
+      timeLimit = Math.max(1500, 5000 - ((level - 25) * 120));
+  }
+
+  // Wall Density Scaling
+  let wallCountMin = 0;
+  let wallCountMax = 0;
+
+  if (gridSize === 3) {
+      wallCountMin = level > 5 ? 1 : 0;
+      wallCountMax = level > 5 ? 2 : 1;
+  } else if (gridSize === 4) {
+      // Gradual increase
+      const tierLevel = level - 10;
+      wallCountMin = 2 + Math.floor(tierLevel / 5); 
+      wallCountMax = 4 + Math.floor(tierLevel / 5);
+  } else {
+      // High density
+      const tierLevel = level - 25;
+      wallCountMin = 5 + Math.floor(tierLevel / 4);
+      wallCountMax = 8 + Math.floor(tierLevel / 4);
+  }
+  
+  // Safety cap
+  const maxWalls = (gridSize * gridSize) - 5; // Leave space for player, target, and path
+  wallCountMax = Math.min(wallCountMax, maxWalls);
+  wallCountMin = Math.min(wallCountMin, wallCountMax);
+
+  return { gridSize, timeLimit, wallCountMin, wallCountMax };
+};
+
+export const Game: React.FC<GameProps> = ({ 
+  onEndGame, 
+  onBackToMenu, 
+  onOpenSettings, 
+  highScore, 
+  hapticsEnabled 
+}) => {
   // Game State
-  const [gridSize, setGridSize] = useState<number>(INITIAL_GRID_SIZE);
   const [score, setScore] = useState<number>(1); 
-  const [timeLeft, setTimeLeft] = useState<number>(INITIAL_TIME_LIMIT_MS);
+  const scoreRef = useRef<number>(1); // Ref to keep track of score inside closures
+  
+  const [gridSize, setGridSize] = useState<number>(3);
+  const [timeLeft, setTimeLeft] = useState<number>(5000);
+  const [maxTime, setMaxTime] = useState<number>(5000);
+  
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   
@@ -28,9 +86,16 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
   const [playerIndex, setPlayerIndex] = useState<number>(0);
   const [targetIndex, setTargetIndex] = useState<number>(0);
   const [walls, setWalls] = useState<Set<number>>(new Set());
+  const [hitWallIndex, setHitWallIndex] = useState<number | null>(null);
 
   const timerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
+  const hitTimeoutRef = useRef<number | null>(null);
+
+  // Sync Ref with State
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
   // Helper: BFS to check if path exists
   const isSolvable = (size: number, start: number, end: number, currentWalls: Set<number>) => {
@@ -63,7 +128,8 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
   };
 
   // Generate a new board state
-  const generateLevel = useCallback((currentSize: number, currentPlayerIndex: number) => {
+  const generateLevel = useCallback((currentSize: number, currentPlayerIndex: number, currentLevel: number) => {
+    const { wallCountMin, wallCountMax } = calculateDifficulty(currentLevel);
     const totalTiles = currentSize * currentSize;
     
     let newTargetIndex: number;
@@ -114,13 +180,10 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
             [possibleWalls[i], possibleWalls[j]] = [possibleWalls[j], possibleWalls[i]];
         }
 
-        // Pick Walls
-        let wallCount = 0;
-        if (currentSize === 3) wallCount = Math.random() > 0.7 ? 1 : 0;
-        else if (currentSize === 4) wallCount = 2 + Math.floor(Math.random() * 2);
-        else wallCount = 4 + Math.floor(Math.random() * 3);
+        // Pick Walls based on difficulty
+        const count = Math.floor(Math.random() * (wallCountMax - wallCountMin + 1)) + wallCountMin;
 
-        for (let i = 0; i < wallCount; i++) {
+        for (let i = 0; i < count; i++) {
             if (possibleWalls.length > 0) {
                 newWalls.add(possibleWalls.pop()!);
             }
@@ -136,55 +199,34 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
     setWalls(newWalls);
   }, []);
 
-  // Start Game
-  useEffect(() => {
+  // Start Game / Restart Logic
+  const initializeGame = useCallback(() => {
     soundManager.playStart();
-    setScore(1);
-    setGridSize(INITIAL_GRID_SIZE);
-    setTimeLeft(INITIAL_TIME_LIMIT_MS);
+    const startLevel = 1;
+    const startParams = calculateDifficulty(startLevel);
+    
+    setScore(startLevel);
+    scoreRef.current = startLevel; 
+
+    setGridSize(startParams.gridSize);
+    setTimeLeft(startParams.timeLimit);
+    setMaxTime(startParams.timeLimit);
     
     const startPlayer = 0;
     setPlayerIndex(startPlayer);
-    generateLevel(INITIAL_GRID_SIZE, startPlayer);
-    
-    setIsPlaying(true);
-    setIsPaused(false);
-
-    return () => stopTimer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Restart Game Logic
-  const handleRestart = useCallback(() => {
-    soundManager.playStart();
-    setScore(1);
-    setGridSize(INITIAL_GRID_SIZE);
-    setTimeLeft(INITIAL_TIME_LIMIT_MS);
-    
-    const startPlayer = 0;
-    setPlayerIndex(startPlayer);
-    generateLevel(INITIAL_GRID_SIZE, startPlayer);
+    generateLevel(startParams.gridSize, startPlayer, startLevel);
+    setHitWallIndex(null);
     
     setIsPlaying(true);
     setIsPaused(false);
   }, [generateLevel]);
 
-  // Difficulty Scaling
+  // Initial Load
   useEffect(() => {
-    let newSize = INITIAL_GRID_SIZE;
-    if (score >= 10) newSize = 4;
-    if (score >= 25) newSize = 5;
-    
-    if (newSize !== gridSize) {
-        const currentRow = Math.floor(playerIndex / gridSize);
-        const currentCol = playerIndex % gridSize;
-        const newPlayerIndex = currentRow * newSize + currentCol;
-
-        setGridSize(newSize);
-        setPlayerIndex(newPlayerIndex);
-        generateLevel(newSize, newPlayerIndex);
-    }
-  }, [score, gridSize, playerIndex, generateLevel]);
+    initializeGame();
+    return () => stopTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Timer
   const startTimer = () => {
@@ -221,42 +263,72 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
     stopTimer();
     setIsPlaying(false);
     soundManager.playGameOver();
+    if (hapticsEnabled && navigator.vibrate) navigator.vibrate(400);
+    
+    const finalScore = scoreRef.current;
+    
     setTimeout(() => {
-        onEndGame(score);
+        onEndGame(finalScore);
     }, 100);
   };
 
-  // Movement
+  // Movement & Progression
   const movePlayer = useCallback((dx: number, dy: number) => {
     if (!isPlaying || isPaused) return;
 
-    setPlayerIndex((prev) => {
-        const row = Math.floor(prev / gridSize);
-        const col = prev % gridSize;
-        const newRow = row + dy;
-        const newCol = col + dx;
+    const row = Math.floor(playerIndex / gridSize);
+    const col = playerIndex % gridSize;
+    const newRow = row + dy;
+    const newCol = col + dx;
 
-        if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) return prev;
+    if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) return;
 
-        const newIndex = newRow * gridSize + newCol;
+    const newIndex = newRow * gridSize + newCol;
+    
+    if (walls.has(newIndex)) {
+        soundManager.playError();
+        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(200);
+        setHitWallIndex(newIndex);
         
-        if (walls.has(newIndex)) {
-            soundManager.playError();
-            return prev;
-        }
+        if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
+        hitTimeoutRef.current = window.setTimeout(() => {
+            setHitWallIndex(null);
+            hitTimeoutRef.current = null;
+        }, 200);
+        
+        return;
+    }
 
-        if (newIndex === targetIndex) {
-            soundManager.playTap();
-            setScore(s => s + 1);
-            setTimeLeft(INITIAL_TIME_LIMIT_MS);
-            generateLevel(gridSize, newIndex);
+    if (newIndex === targetIndex) {
+        soundManager.playTap();
+        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(15);
+        
+        const nextLevel = score + 1;
+        setScore(nextLevel);
+        
+        const diffParams = calculateDifficulty(nextLevel);
+        setMaxTime(diffParams.timeLimit);
+        setTimeLeft(diffParams.timeLimit);
+
+        if (diffParams.gridSize !== gridSize) {
+            const currentRow = newRow;
+            const currentCol = newCol;
+            const newPlayerIndex = currentRow * diffParams.gridSize + currentCol;
+            
+            setGridSize(diffParams.gridSize);
+            setPlayerIndex(newPlayerIndex);
+            generateLevel(diffParams.gridSize, newPlayerIndex, nextLevel);
         } else {
-            soundManager.playMove();
+            setPlayerIndex(newIndex);
+            generateLevel(gridSize, newIndex, nextLevel);
         }
 
-        return newIndex;
-    });
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel]);
+    } else {
+        soundManager.playMove();
+        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(5);
+        setPlayerIndex(newIndex);
+    }
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, hapticsEnabled]);
 
   // Keyboard
   useEffect(() => {
@@ -269,12 +341,12 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
             case 'ArrowDown': case 's': case 'S': movePlayer(0, 1); break;
             case 'ArrowLeft': case 'a': case 'A': movePlayer(-1, 0); break;
             case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0); break;
-            case 'r': case 'R': handleRestart(); break;
+            case 'r': case 'R': initializeGame(); break;
         }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [movePlayer, isPlaying, isPaused, handleRestart]);
+  }, [movePlayer, isPlaying, isPaused, initializeGame]);
 
   // Swipe Handling
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -296,13 +368,10 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
     
-    // Minimum swipe distance threshold to avoid accidental taps
     if (Math.max(absX, absY) > 30) {
         if (absX > absY) {
-            // Horizontal
             movePlayer(diffX > 0 ? 1 : -1, 0);
         } else {
-            // Vertical
             movePlayer(0, diffY > 0 ? 1 : -1);
         }
     }
@@ -351,20 +420,23 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
                 className="h-full bg-white transition-all duration-75 ease-linear" 
-                style={{ width: `${(timeLeft / INITIAL_TIME_LIMIT_MS) * 100}%` }}
+                style={{ width: `${(timeLeft / maxTime) * 100}%` }}
             />
         </div>
       </div>
 
       {/* Game Board */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        <div className={`grid ${getGridCols()} gap-2 w-full aspect-square max-w-[380px]`}>
+        <div className={`grid ${getGridCols()} gap-2 w-full aspect-square max-w-[380px] transition-all duration-500`}>
           {Array.from({ length: gridSize * gridSize }).map((_, index) => {
             let type = TileType.EMPTY;
             if (index === playerIndex) type = TileType.PLAYER;
             else if (index === targetIndex) type = TileType.TARGET;
             else if (walls.has(index)) type = TileType.WALL;
-            return <Tile key={index} type={type} />;
+            
+            const isHit = index === hitWallIndex;
+
+            return <Tile key={index} type={type} isHit={isHit} />;
           })}
         </div>
       </div>
@@ -373,7 +445,7 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
       <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto">
         <div className="flex gap-8 items-center">
             <button 
-                onClick={handleRestart}
+                onClick={initializeGame}
                 className="text-neutral-600 hover:text-white transition-colors p-2"
                 aria-label="Restart Run"
             >
@@ -396,7 +468,8 @@ export const Game: React.FC<GameProps> = ({ onEndGame, onBackToMenu, highScore }
             <div className="w-full max-w-[240px] space-y-4 text-center">
                 <h2 className="text-xl font-bold text-white tracking-[0.3em] mb-8 uppercase">Paused</h2>
                 <Button fullWidth variant="primary" onClick={() => setIsPaused(false)}>Resume</Button>
-                <Button fullWidth variant="secondary" onClick={handleRestart}>Restart</Button>
+                <Button fullWidth variant="secondary" onClick={initializeGame}>Restart</Button>
+                <Button fullWidth variant="secondary" onClick={onOpenSettings}><div className="flex items-center justify-center gap-2"><Settings size={16}/> Settings</div></Button>
                 <Button fullWidth variant="ghost" onClick={onBackToMenu}>Abort</Button>
             </div>
         </div>

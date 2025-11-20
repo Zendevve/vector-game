@@ -3,10 +3,11 @@ import { TileType } from '../types';
 
 interface TileProps {
   type: TileType;
+  isHit?: boolean;
 }
 
-export const Tile: React.FC<TileProps> = ({ type }) => {
-  let baseClass = "w-full h-full rounded-md transition-all duration-200";
+export const Tile: React.FC<TileProps> = ({ type, isHit }) => {
+  let baseClass = "w-full h-full rounded-md transition-all duration-100";
   
   switch (type) {
     case TileType.PLAYER:
@@ -18,8 +19,14 @@ export const Tile: React.FC<TileProps> = ({ type }) => {
         baseClass += " bg-cyan-500 glow-cyan z-20 shadow-lg";
         break;
     case TileType.WALL:
-        // Dark gray, subtle
-        baseClass += " bg-neutral-900 border border-neutral-800"; 
+        if (isHit) {
+             // Impact state: Red, scaled up, glowing
+             baseClass += " bg-red-600 border-red-400 shadow-[0_0_20px_rgba(220,38,38,0.6)] scale-105 z-40";
+        } else {
+             // Normal state + Hover
+             // Dark gray with subtle red hint on hover to indicate danger
+             baseClass += " bg-neutral-900 border border-neutral-800 hover:border-red-900/50 hover:bg-red-950/30 hover:shadow-[inset_0_0_10px_rgba(127,29,29,0.2)]"; 
+        }
         break;
     case TileType.EMPTY:
     default:
