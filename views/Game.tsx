@@ -232,8 +232,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             vy: Math.sin(angle) * speed,
             life: 1.0,
             color: type === 'SUCCESS' 
-                ? (Math.random() > 0.5 ? '#22d3ee' : '#ffffff') // Cyan/White
-                : (Math.random() > 0.5 ? '#ef4444' : '#525252'), // Red/Gray
+                ? (Math.random() > 0.5 ? '#06b6d4' : '#ffffff') // Vibrant Cyan / White
+                : (Math.random() > 0.5 ? '#dc2626' : '#262626'), // Deep Red / Dark Gray
             size: Math.random() * 4 + 2 // 2px to 6px
         });
     }
