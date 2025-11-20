@@ -4,9 +4,10 @@ import { TileType } from '../types';
 interface TileProps {
   type: TileType;
   isHit?: boolean;
+  isDanger?: boolean;
 }
 
-export const Tile: React.FC<TileProps> = ({ type, isHit }) => {
+export const Tile: React.FC<TileProps> = ({ type, isHit, isDanger }) => {
   let baseClass = "w-full h-full rounded-md transition-all duration-100";
   
   switch (type) {
@@ -22,6 +23,9 @@ export const Tile: React.FC<TileProps> = ({ type, isHit }) => {
         if (isHit) {
              // Impact state: Red, scaled up, glowing
              baseClass += " bg-red-600 border-red-400 shadow-[0_0_20px_rgba(220,38,38,0.6)] scale-105 z-40";
+        } else if (isDanger) {
+             // Danger warning state for Lava mode
+             baseClass += " bg-neutral-900 animate-danger-pulse z-10";
         } else {
              // Normal state - Solid Gray
              baseClass += " bg-neutral-900 border border-neutral-800"; 

@@ -525,8 +525,17 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             else if (walls.has(index)) type = TileType.WALL;
             
             const isHit = index === hitWallIndex;
+            
+            // Calculate adjacency for warning (Lava Mode)
+            const pRow = Math.floor(playerIndex / gridSize);
+            const pCol = playerIndex % gridSize;
+            const tRow = Math.floor(index / gridSize);
+            const tCol = index % gridSize;
+            const isAdjacent = Math.abs(pRow - tRow) + Math.abs(pCol - tCol) === 1;
+            
+            const isDanger = mode === GameMode.LAVA && walls.has(index) && isAdjacent;
 
-            return <Tile key={index} type={type} isHit={isHit} />;
+            return <Tile key={index} type={type} isHit={isHit} isDanger={isDanger} />;
           })}
 
           {/* Particles Overlay */}

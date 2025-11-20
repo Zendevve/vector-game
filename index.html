@@ -33,6 +33,22 @@
       .glow-cyan {
         box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
       }
+
+      /* Lava Mode Danger Pulse */
+      @keyframes dangerPulse {
+        0%, 100% { 
+          border-color: rgba(127, 29, 29, 0.4); 
+          box-shadow: inset 0 0 0 rgba(220, 38, 38, 0);
+        }
+        50% { 
+          border-color: rgba(239, 68, 68, 0.8); 
+          box-shadow: inset 0 0 15px rgba(220, 38, 38, 0.2);
+        }
+      }
+      
+      .animate-danger-pulse {
+        animation: dangerPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
       
       /* Button tap highlight removal */
       button {
