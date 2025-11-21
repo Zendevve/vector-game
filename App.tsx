@@ -4,7 +4,7 @@ import { MainMenu } from './views/MainMenu';
 import { Game } from './views/Game';
 import { ViewState, GameMode } from './types';
 import { Button } from './components/Button';
-import { getHighScores, saveHighScore, syncScoresFromCloud, HighScores } from './utils/storage';
+import { getHighScores, saveHighScore, HighScores } from './utils/storage';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
@@ -12,17 +12,6 @@ const App: React.FC = () => {
   const [gameOverDetails, setGameOverDetails] = useState<{title: string, desc: string}>({ title: 'Terminated', desc: 'Time limit exceeded' });
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
   const [activeMode, setActiveMode] = useState<GameMode>(GameMode.CLASSIC);
-
-  // Sync with cloud on startup
-  useEffect(() => {
-    const sync = async () => {
-        const updatedScores = await syncScoresFromCloud();
-        if (updatedScores) {
-            setHighScores(updatedScores);
-        }
-    };
-    sync();
-  }, []);
 
   const handleStartGame = (mode: GameMode) => {
     setActiveMode(mode);
@@ -38,7 +27,7 @@ const App: React.FC = () => {
         setGameOverDetails({ title: 'TERMINATED', desc: 'TIME LIMIT EXCEEDED' });
     }
 
-    // Save high score (local optimistic update + cloud async push)
+    // Save high score (local storage only)
     const newScores = saveHighScore(activeMode, score);
     setHighScores(newScores);
 
