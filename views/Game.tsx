@@ -854,46 +854,50 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
       {/* Paused Overlay */}
       {isPaused && (
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center z-50 animate-in fade-in duration-200">
+        <div className="absolute inset-0 bg-[#050505] z-50 flex flex-col items-center justify-center p-8 animate-in fade-in duration-200">
             
-            <div className="flex flex-col items-center w-full max-w-[280px] space-y-10">
-                
-                {/* Minimal Header */}
-                <div className="flex flex-col items-center gap-3">
-                     <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-yellow-500 animate-pulse rounded-full"></div>
-                        <span className="text-[10px] font-mono text-yellow-500 tracking-[0.2em] uppercase">Suspended</span>
-                     </div>
-                     <h2 className="text-5xl font-black text-white tracking-tighter uppercase">PAUSED</h2>
-                </div>
+            <div className="w-full border-t-2 border-white mb-8"></div>
 
-                {/* Floating Stats */}
-                <div className="flex justify-between w-full px-4">
-                     <div className="flex flex-col items-center">
-                          <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest mb-2">Current Grid</span>
-                          <span className="font-mono text-4xl text-white font-bold tracking-tighter">{score.toString().padStart(2, '0')}</span>
-                     </div>
-                     <div className="flex flex-col items-center">
-                          <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest mb-2">Remaining</span>
-                          <span className={`font-mono text-4xl font-bold tracking-tighter ${timeLeft < 1000 ? 'text-red-500' : 'text-cyan-400'}`}>
-                              {(timeLeft / 1000).toFixed(2)}s
-                          </span>
-                     </div>
+            <div className="w-full mb-12">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.3em]">Status</span>
                 </div>
+                <h2 className="text-5xl font-black text-white tracking-tighter uppercase mb-2">
+                    PAUSED
+                </h2>
+                <p className="text-neutral-400 font-mono text-xs tracking-wide">AWAITING DIRECTIVE</p>
+            </div>
 
-                {/* Actions */}
-                <div className="w-full flex flex-col gap-4">
-                    <Button fullWidth variant="primary" size="lg" onClick={() => setIsPaused(false)} className="bg-black/20 backdrop-blur-sm">
-                        RESUME
-                    </Button>
-                    <div className="grid grid-cols-2 gap-4">
-                        <Button fullWidth variant="secondary" onClick={initializeGame} className="bg-black/20 backdrop-blur-sm">
-                            RETRY
-                        </Button>
-                        <Button fullWidth variant="danger" onClick={onBackToMenu} className="bg-black/20 backdrop-blur-sm">
-                            QUIT
-                        </Button>
+            <div className="grid grid-cols-2 w-full gap-4 mb-12">
+                <div className="bg-neutral-900/50 border border-neutral-800 p-5 rounded-lg">
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Grid Level</div>
+                    <div className="text-3xl font-black text-white font-mono">{score.toString().padStart(2, '0')}</div>
+                </div>
+                <div className="bg-neutral-900/50 border border-neutral-800 p-5 rounded-lg">
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Time Left</div>
+                    <div className={`text-3xl font-black font-mono ${timeLeft < 1000 ? 'text-red-500' : 'text-cyan-500'}`}>
+                        {(timeLeft / 1000).toFixed(2)}s
                     </div>
+                </div>
+            </div>
+
+            <div className="w-full flex flex-col gap-4">
+                <Button 
+                    variant="primary" 
+                    size="lg" 
+                    fullWidth 
+                    onClick={() => setIsPaused(false)}
+                >
+                    RESUME
+                </Button>
+                <div className="grid grid-cols-2 gap-4">
+                    <Button variant="secondary" fullWidth onClick={initializeGame}>
+                        RETRY
+                    </Button>
+                    <Button variant="danger" fullWidth onClick={onBackToMenu}>
+                        ABORT
+                    </Button>
                 </div>
             </div>
         </div>
