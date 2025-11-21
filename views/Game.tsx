@@ -95,6 +95,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   // Visual Effects State
   const [particles, setParticles] = useState<Particle[]>([]);
   const [swipeFeedback, setSwipeFeedback] = useState<{ direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', id: number } | null>(null);
+  const [gameOverEffect, setGameOverEffect] = useState<'CRITICAL' | 'VOID' | 'TIMEOUT' | null>(null);
 
   const timerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
@@ -265,6 +266,61 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     animationFrameId = requestAnimationFrame(updateParticles);
     return () => cancelAnimationFrame(animationFrameId);
   }, [particles.length]); 
+  
+  // Ambient Background Particles
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    const bgParticles: {x: number, y: number, speed: number, size: number, alpha: number}[] = [];
+    const particleCount = 60;
+
+    for (let i = 0; i < particleCount; i++) {
+        bgParticles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            speed: Math.random() * 0.15 + 0.05,
+            size: Math.random() * 2 + 1,
+            alpha: Math.random() * 0.08 + 0.02
+        });
+    }
+
+    let animationId: number;
+    const animate = () => {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#fff';
+        
+        bgParticles.forEach(p => {
+            p.y -= p.speed;
+            if (p.y < 0) p.y = height;
+            
+            ctx.globalAlpha = p.alpha;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        
+        animationId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    const handleResize = () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+        cancelAnimationFrame(animationId);
+        window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Start Game / Restart Logic
   const initializeGame = useCallback(() => {
@@ -284,6 +340,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setHitWallIndex(null);
     setParticles([]);
     setSwipeFeedback(null);
+    setGameOverEffect(null);
     isProcessingMove.current = false;
     
     setIsPlaying(true);
@@ -333,16 +390,28 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setIsPlaying(false);
     
     const finalScore = scoreRef.current;
-    
-    // Small delay for visual feedback (if any) before screen switch
+    let delay = 100; // Default short delay
+
+    if (reason?.title === 'CRITICAL FAILURE') {
+         setGameOverEffect('CRITICAL');
+         delay = 800;
+    } else if (reason?.title === 'SIGNAL LOST') {
+         setGameOverEffect('VOID');
+         delay = 600;
+    } else if (reason?.title === 'TERMINATED') {
+         setGameOverEffect('TIMEOUT');
+         delay = 1000;
+    }
+
+    // Delay call to parent to allow animation to play
     setTimeout(() => {
         onEndGame(finalScore, reason);
-    }, 100);
+    }, delay);
   };
 
   // Movement & Progression
   const movePlayer = useCallback((dx: number, dy: number) => {
-    if (!isPlaying || isPaused) return;
+    if (!isPlaying || isPaused || gameOverEffect) return;
     
     // Prevent diagonal/simultaneous inputs
     if (isProcessingMove.current) return;
@@ -421,7 +490,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     } else {
         setPlayerIndex(newIndex);
     }
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode, gameOverEffect]);
 
   // Keyboard
   useEffect(() => {
@@ -482,22 +551,45 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const playerRow = Math.floor(playerIndex / gridSize);
   const playerCol = playerIndex % gridSize;
 
+  // Conditional Styling for Player Overlay based on Game Over Effect
+  let playerOverlayClass = "absolute transition-all duration-100 ease-out p-1 z-30";
+  if (gameOverEffect === 'CRITICAL') {
+      playerOverlayClass += " animate-[death-critical_0.4s_ease-out_forwards]";
+  } else if (gameOverEffect === 'VOID') {
+      playerOverlayClass += " animate-[death-void_0.4s_ease-out_forwards]";
+  }
+
   return (
     <div 
-        className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans touch-none"
+        className={`flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans touch-none ${gameOverEffect ? 'pointer-events-none' : ''}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
     >
+      <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none opacity-50" />
       <style>{`
          @keyframes swipe-fade {
            0% { opacity: 0; transform: scale(0.8); }
            20% { opacity: 1; transform: scale(1.2); }
            100% { opacity: 0; transform: scale(1.5); }
          }
+         @keyframes death-critical {
+            0% { transform: scale(1); background-color: #fff; box-shadow: 0 0 0 rgba(255,0,0,0); }
+            20% { transform: scale(1.2); background-color: #ef4444; box-shadow: 0 0 30px rgba(220, 38, 38, 0.8); }
+            100% { transform: scale(2); opacity: 0; }
+         }
+         @keyframes death-void {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: scale(0) rotate(45deg); opacity: 0; }
+         }
+         @keyframes overlay-flash {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            100% { opacity: 0.8; }
+         }
       `}</style>
 
       {/* Minimalist HUD */}
-      <div className="flex justify-between items-end p-8 pb-2 w-full">
+      <div className="flex justify-between items-end p-8 pb-2 w-full z-20">
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">GRID</span>
@@ -521,7 +613,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       </div>
 
       {/* Progress Line */}
-      <div className="w-full px-8 mb-8">
+      <div className="w-full px-8 mb-8 z-20">
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
                 className={`h-full ${mode === GameMode.LAVA ? 'bg-red-500' : 'bg-white'}`}
@@ -568,7 +660,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
           {/* Animated Player Overlay */}
           <div 
-             className="absolute transition-all duration-100 ease-out p-1 z-30"
+             className={playerOverlayClass}
              style={{
                  width: `${100 / gridSize}%`,
                  height: `${100 / gridSize}%`,
@@ -578,6 +670,13 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
           >
               <Tile type={TileType.PLAYER} />
           </div>
+
+          {/* Timeout Overlay */}
+          {gameOverEffect === 'TIMEOUT' && (
+            <div className="absolute inset-0 bg-red-950/50 backdrop-blur-[2px] z-50 flex items-center justify-center animate-[overlay-flash_0.3s_ease-out_forwards] rounded-md border border-red-900/30">
+                <span className="text-red-500 font-bold tracking-[0.5em] text-2xl">TERMINATED</span>
+            </div>
+          )}
 
           {/* Particles Overlay */}
           {particles.map(p => (
@@ -598,7 +697,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
         
         {/* Swipe Feedback Overlay */}
-        {swipeFeedback && (
+        {swipeFeedback && !gameOverEffect && (
              <div 
                 key={swipeFeedback.id}
                 className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
@@ -615,12 +714,13 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       </div>
 
       {/* Minimal Bottom Controls */}
-      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto w-full">
+      <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto w-full z-20">
         <div className="flex gap-8 items-center">
             <button 
                 onClick={initializeGame}
                 className="text-neutral-600 hover:text-white transition-colors p-2"
                 aria-label="Restart Run"
+                disabled={!!gameOverEffect}
             >
                <RotateCcw size={20} />
             </button>
@@ -629,6 +729,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                 onClick={() => setIsPaused(!isPaused)}
                 className="text-neutral-600 hover:text-white transition-colors p-2"
                 aria-label={isPaused ? "Resume" : "Pause"}
+                disabled={!!gameOverEffect}
             >
                {isPaused ? <Play size={20} /> : <Pause size={20} />}
             </button>
@@ -636,7 +737,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       </div>
 
       {/* Paused Overlay */}
-      {isPaused && (
+      {isPaused && !gameOverEffect && (
         <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in">
             <div className="w-full max-w-[240px] space-y-4 text-center">
                 <h2 className="text-xl font-bold text-white tracking-[0.3em] mb-8 uppercase">Paused</h2>
