@@ -238,7 +238,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   }, []);
 
   // Particle System Logic
-  const spawnParticles = (index: number, type: 'SUCCESS' | 'COLLISION' | 'MOVE') => {
+  const spawnParticles = (index: number, type: 'SUCCESS' | 'COLLISION') => {
     const row = Math.floor(index / gridSize);
     const col = index % gridSize;
     
@@ -249,7 +249,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     let count = 8;
     if (type === 'SUCCESS') count = 12;
-    if (type === 'MOVE') count = 5;
 
     const newParticles: Particle[] = [];
 
@@ -265,11 +264,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             color = Math.random() > 0.5 ? '#06b6d4' : '#ffffff';
         } else if (type === 'COLLISION') {
             color = Math.random() > 0.5 ? '#dc2626' : '#262626';
-        } else if (type === 'MOVE') {
-            speed = speed * 0.5;
-            decay = 0.08; // Fade faster
-            size = Math.random() * 2 + 1; // Smaller
-            color = '#ffffff';
         }
         
         newParticles.push({
@@ -541,7 +535,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
     } else {
-        spawnParticles(newIndex, 'MOVE');
         haptics.tick();
         setPlayerIndex(newIndex);
     }
