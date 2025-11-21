@@ -23,7 +23,7 @@ const App: React.FC = () => {
     if (reason) {
         setGameOverDetails(reason);
     } else {
-        setGameOverDetails({ title: 'Terminated', desc: 'Time limit exceeded' });
+        setGameOverDetails({ title: 'TERMINATED', desc: 'TIME LIMIT EXCEEDED' });
     }
 
     // Save high score if applicable
@@ -41,8 +41,40 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
+  const getGameOverStyle = (title: string) => {
+    switch (title) {
+        case 'CRITICAL FAILURE': // Lava Wall Hit
+            return 'text-red-600 animate-burn';
+        case 'SIGNAL LOST': // Void Fall
+            return 'text-neutral-500 animate-glitch';
+        case 'TERMINATED': // Time Out
+            return 'text-red-500';
+        default:
+            return 'text-white';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black font-sans">
+      <style>{`
+        @keyframes burn-pulse {
+            0%, 100% { text-shadow: none; opacity: 1; }
+            50% { text-shadow: 0 0 15px rgba(220, 38, 38, 0.4); opacity: 0.9; }
+        }
+        .animate-burn {
+            animation: burn-pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes text-glitch {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+            52% { opacity: 0.9; }
+            54% { opacity: 0.7; }
+        }
+        .animate-glitch {
+            animation: text-glitch 2s steps(1) infinite;
+        }
+      `}</style>
       
       {viewState === ViewState.MENU && (
         <MainMenu onStartGame={handleStartGame} highScores={highScores} />
@@ -58,13 +90,13 @@ const App: React.FC = () => {
       )}
 
       {viewState === ViewState.GAME_OVER && (
-        <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-md mx-auto p-8 animate-in fade-in zoom-in-95 duration-300">
+        <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-md md:max-w-md mx-auto p-8 animate-in fade-in zoom-in-95 duration-300">
             
             <div className="w-full border-t-2 border-white mb-8"></div>
 
             <div className="w-full mb-12">
                 <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.3em] mb-2">Status</div>
-                <h2 className={`text-5xl font-black uppercase tracking-tighter ${gameOverDetails.title !== 'Terminated' ? 'text-red-500' : 'text-white'}`}>
+                <h2 className={`text-5xl font-black uppercase tracking-tighter ${getGameOverStyle(gameOverDetails.title)}`}>
                     {gameOverDetails.title}
                 </h2>
                 <p className="text-neutral-400 mt-2 font-mono text-sm">{gameOverDetails.desc}</p>
