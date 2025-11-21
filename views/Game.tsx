@@ -125,6 +125,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const hitTimeoutRef = useRef<number | null>(null);
   const isProcessingMove = useRef<boolean>(false);
 
+  // Input Buffering Refs
+  const inputBuffer = useRef<{dx: number, dy: number}[]>([]);
+  const movePlayerRef = useRef<((dx: number, dy: number) => void) | null>(null);
+  const moveTimeoutRef = useRef<number | null>(null);
+
   // Sync Ref with State
   useEffect(() => {
     scoreRef.current = score;
@@ -380,7 +385,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setHitWallIndex(null);
     setParticles([]);
     setSwipeFeedback(null);
+    
+    // Reset input state
     isProcessingMove.current = false;
+    inputBuffer.current = [];
+    if (moveTimeoutRef.current) {
+        clearTimeout(moveTimeoutRef.current);
+        moveTimeoutRef.current = null;
+    }
     
     setIsPlaying(true);
     setIsPaused(false);
@@ -434,13 +446,28 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const movePlayer = useCallback((dx: number, dy: number) => {
     if (!isPlaying || isPaused) return;
     
-    // Prevent diagonal/simultaneous inputs
-    if (isProcessingMove.current) return;
+    // Input Buffering Logic
+    if (isProcessingMove.current) {
+        // Limit buffer size to prevent massive queues
+        if (inputBuffer.current.length < 2) {
+            inputBuffer.current.push({dx, dy});
+        }
+        return;
+    }
+    
     isProcessingMove.current = true;
     
-    // Reset input lock after tile transition duration
-    setTimeout(() => {
+    // Reset input lock after tile transition duration & check buffer
+    moveTimeoutRef.current = window.setTimeout(() => {
         isProcessingMove.current = false;
+        // If there are moves in the buffer, execute the next one
+        if (inputBuffer.current.length > 0) {
+            const nextMove = inputBuffer.current.shift();
+            // Use ref to call the freshest version of movePlayer
+            if (nextMove && movePlayerRef.current) {
+                movePlayerRef.current(nextMove.dx, nextMove.dy);
+            }
+        }
     }, 100);
 
     const row = Math.floor(playerIndex / gridSize);
@@ -519,6 +546,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         setPlayerIndex(newIndex);
     }
   }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);
+
+  // Keep movePlayerRef in sync
+  useEffect(() => {
+      movePlayerRef.current = movePlayer;
+  }, [movePlayer]);
 
   // Keyboard
   useEffect(() => {
