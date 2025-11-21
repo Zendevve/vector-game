@@ -546,6 +546,10 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
            20% { opacity: 1; transform: scale(1.2); }
            100% { opacity: 0; transform: scale(1.5); }
          }
+         @keyframes tile-enter {
+           0% { opacity: 0; transform: scale(0.9); }
+           100% { opacity: 1; transform: scale(1); }
+         }
       `}</style>
 
       {/* Minimalist HUD */}
@@ -610,9 +614,18 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             const isAdjacent = Math.abs(pRow - tRow) + Math.abs(pCol - tCol) === 1;
             
             const isDanger = mode === GameMode.LAVA && walls.has(index) && isAdjacent;
+            
+            // Stagger animation based on grid position
+            const staggerDelay = (tRow + tCol) * 20;
 
             return (
-                <div key={index} className="w-full h-full p-1">
+                <div 
+                    key={`${score}-${index}`}
+                    className="w-full h-full p-1"
+                    style={{ 
+                        animation: `tile-enter 0.3s cubic-bezier(0.2, 0, 0.2, 1) ${staggerDelay}ms backwards` 
+                    }}
+                >
                     <Tile type={type} isHit={isHit} isDanger={isDanger} />
                 </div>
             );
