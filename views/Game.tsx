@@ -26,51 +26,73 @@ interface Particle {
   life: number; // 0.0 - 1.0
   color: string;
   size: number;
+  decay: number;
 }
 
 // Adaptive Difficulty Logic
 const calculateDifficulty = (level: number) => {
   let gridSize = 3;
-  
-  // Grid Size scaling
-  if (level >= 25) gridSize = 5;
-  else if (level >= 10) gridSize = 4;
-
-  // Time Limit Scaling (ms)
-  let timeLimit = 5000;
-  if (gridSize === 3) {
-      // Levels 1-9: 5.0s -> 4.2s
-      timeLimit = Math.max(2000, 5000 - ((level - 1) * 100));
-  } else if (gridSize === 4) {
-      // Levels 10-24: Reset to 5.5s -> 4.1s (Compensate for larger grid)
-      timeLimit = Math.max(2000, 5500 - ((level - 10) * 100));
-  } else {
-      // Levels 25+: Reset to 5.0s -> 2.0s (High speed)
-      timeLimit = Math.max(1500, 5000 - ((level - 25) * 120));
-  }
-
-  // Wall Density Scaling
   let wallCountMin = 0;
   let wallCountMax = 0;
+  let timeLimit = 5000;
 
-  if (gridSize === 3) {
-      wallCountMin = level > 5 ? 1 : 0;
-      wallCountMax = level > 5 ? 2 : 1;
-  } else if (gridSize === 4) {
-      // Gradual increase
-      const tierLevel = level - 10;
-      wallCountMin = 2 + Math.floor(tierLevel / 5); 
-      wallCountMax = 4 + Math.floor(tierLevel / 5);
-  } else {
-      // High density
-      const tierLevel = level - 25;
-      wallCountMin = 5 + Math.floor(tierLevel / 4);
-      wallCountMax = 8 + Math.floor(tierLevel / 4);
+  // Phase 1: Training (Levels 1-8)
+  // Focus: Onboarding -> High speed 3x3
+  if (level <= 8) {
+      gridSize = 3;
+      if (level <= 3) {
+          wallCountMin = 0;
+          wallCountMax = 0;
+      } else {
+          wallCountMin = 1;
+          wallCountMax = 2;
+      }
+      // 5000ms -> 3000ms
+      timeLimit = Math.max(3000, 5000 - (level * 250)); 
+  } 
+  // Phase 2: Expansion (Levels 9-20)
+  // Focus: Adapting to 4x4 space
+  else if (level <= 20) {
+      gridSize = 4;
+      wallCountMin = 2;
+      wallCountMax = 4;
+      // 5500ms -> 3500ms (Reset time slightly for larger grid)
+      timeLimit = Math.max(3500, 5500 - ((level - 8) * 180));
+  }
+  // Phase 3: Density (Levels 21-35)
+  // Focus: 4x4 with high obstacle count
+  else if (level <= 35) {
+      gridSize = 4;
+      wallCountMin = 5;
+      wallCountMax = 7;
+      // 3500ms -> 2500ms
+      timeLimit = Math.max(2500, 4000 - ((level - 20) * 100));
+  }
+  // Phase 4: Complexity (Levels 36-50)
+  // Focus: Adapting to 5x5 space
+  else if (level <= 50) {
+      gridSize = 5;
+      wallCountMin = 6;
+      wallCountMax = 10;
+      // 6000ms -> 3000ms
+      timeLimit = Math.max(3000, 6000 - ((level - 35) * 200));
+  }
+  // Phase 5: Overload (Levels 51+)
+  // Focus: 5x5 Maximum density & Reflexes
+  else {
+      gridSize = 5;
+      wallCountMin = 10;
+      wallCountMax = 13;
+      // Caps at 1500ms
+      timeLimit = Math.max(1500, 3500 - ((level - 50) * 80));
   }
   
-  // Safety cap
-  const maxWalls = (gridSize * gridSize) - 5; // Leave space for player, target, and path
-  wallCountMax = Math.min(wallCountMax, maxWalls);
+  // Safety Clamp: Ensure the grid is never impossible to generate
+  // We need at least 2 empty spots for Player & Target, plus pathing buffer
+  const area = gridSize * gridSize;
+  const safeLimit = area - 5; // Leave at least 5 tiles open (Player, Target, +3 for path)
+  
+  wallCountMax = Math.min(wallCountMax, safeLimit);
   wallCountMin = Math.min(wallCountMin, wallCountMax);
 
   return { gridSize, timeLimit, wallCountMin, wallCountMax };
@@ -211,7 +233,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   }, []);
 
   // Particle System Logic
-  const spawnParticles = (index: number, type: 'SUCCESS' | 'COLLISION') => {
+  const spawnParticles = (index: number, type: 'SUCCESS' | 'COLLISION' | 'MOVE') => {
     const row = Math.floor(index / gridSize);
     const col = index % gridSize;
     
@@ -220,12 +242,30 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const startX = (col * tilePercent) + (tilePercent / 2);
     const startY = (row * tilePercent) + (tilePercent / 2);
 
-    const count = type === 'SUCCESS' ? 12 : 8;
+    let count = 8;
+    if (type === 'SUCCESS') count = 12;
+    if (type === 'MOVE') count = 5;
+
     const newParticles: Particle[] = [];
 
     for (let i = 0; i < count; i++) {
         const angle = (Math.PI * 2 * i) / count;
-        const speed = Math.random() * 0.5 + 0.2; // Random speed
+        let speed = Math.random() * 0.5 + 0.2; // Random speed
+        
+        let decay = 0.04;
+        let size = Math.random() * 4 + 2;
+        let color = '#ffffff';
+
+        if (type === 'SUCCESS') {
+            color = Math.random() > 0.5 ? '#06b6d4' : '#ffffff';
+        } else if (type === 'COLLISION') {
+            color = Math.random() > 0.5 ? '#dc2626' : '#262626';
+        } else if (type === 'MOVE') {
+            speed = speed * 0.5;
+            decay = 0.08; // Fade faster
+            size = Math.random() * 2 + 1; // Smaller
+            color = '#ffffff';
+        }
         
         newParticles.push({
             id: Math.random(),
@@ -234,10 +274,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             life: 1.0,
-            color: type === 'SUCCESS' 
-                ? (Math.random() > 0.5 ? '#06b6d4' : '#ffffff') // Vibrant Cyan / White
-                : (Math.random() > 0.5 ? '#dc2626' : '#262626'), // Deep Red / Dark Gray
-            size: Math.random() * 4 + 2 // 2px to 6px
+            color,
+            size,
+            decay
         });
     }
 
@@ -256,7 +295,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                 ...p,
                 x: p.x + p.vx,
                 y: p.y + p.vy,
-                life: p.life - 0.04, // Fade out
+                life: p.life - p.decay,
             })).filter(p => p.life > 0);
             
             return updated;
@@ -475,6 +514,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
     } else {
+        spawnParticles(newIndex, 'MOVE');
         haptics.tick();
         setPlayerIndex(newIndex);
     }
