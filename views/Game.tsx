@@ -35,6 +35,7 @@ const calculateDifficulty = (level: number) => {
   let wallCountMin = 0;
   let wallCountMax = 0;
   let timeLimit = 5000;
+  let complexity = 0; // 0 = simple, 1 = moderate, 2 = complex (maze-like)
 
   // Phase 1: Onboarding (Levels 1-5)
   // Gentle introduction. 3x3 Grid. Minimal obstacles.
@@ -44,6 +45,7 @@ const calculateDifficulty = (level: number) => {
       wallCountMax = level <= 2 ? 0 : 2;
       // Generous time to learn controls: 5000ms -> 3800ms
       timeLimit = Math.max(3800, 5000 - (level * 240)); 
+      complexity = 0;
   } 
   // Phase 2: Expansion (Levels 6-15)
   // Jump to 4x4. Space opens up, but walls appear consistently.
@@ -53,6 +55,7 @@ const calculateDifficulty = (level: number) => {
       wallCountMax = 4;
       // Time resets slightly for larger grid: 5000ms -> 3200ms
       timeLimit = Math.max(3200, 5000 - ((level - 5) * 180));
+      complexity = 0.2; // 20% chance of complex structures
   }
   // Phase 3: Compression (Levels 16-30)
   // 4x4 Grid fills up. Pathfinding becomes tighter.
@@ -62,6 +65,7 @@ const calculateDifficulty = (level: number) => {
       wallCountMax = 8; // High density for 4x4
       // Strict timing: 3200ms -> 2000ms
       timeLimit = Math.max(2000, 3200 - ((level - 15) * 80));
+      complexity = 0.5; // 50% chance of complex structures
   }
   // Phase 4: Scale (Levels 31-50)
   // Jump to 5x5. Long range navigation logic required.
@@ -71,6 +75,7 @@ const calculateDifficulty = (level: number) => {
       wallCountMax = 10;
       // Time bump for distance: 4500ms -> 2500ms
       timeLimit = Math.max(2500, 4500 - ((level - 30) * 100));
+      complexity = 0.7;
   }
   // Phase 5: Velocity (Levels 51+)
   // 5x5 Grid. High Chaos. Reflex test.
@@ -80,6 +85,7 @@ const calculateDifficulty = (level: number) => {
       wallCountMax = 15;
       // Extreme speed: 2500ms -> 1200ms hard cap
       timeLimit = Math.max(1200, 2500 - ((level - 50) * 50));
+      complexity = 0.9;
   }
   
   // Safety Clamp: Ensure the grid is never impossible to generate
@@ -90,7 +96,7 @@ const calculateDifficulty = (level: number) => {
   wallCountMax = Math.min(wallCountMax, safeLimit);
   wallCountMin = Math.min(wallCountMin, wallCountMax);
 
-  return { gridSize, timeLimit, wallCountMin, wallCountMax };
+  return { gridSize, timeLimit, wallCountMin, wallCountMax, complexity };
 };
 
 export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highScore }) => {
@@ -160,9 +166,57 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     return false;
   };
 
+  // Helper: Randomized DFS to find a guaranteed path (for corridor generation)
+  const generateRandomPath = (size: number, start: number, end: number): Set<number> => {
+      const stack = [start];
+      const pathMap = new Map<number, number>(); // child -> parent
+      const visited = new Set([start]);
+      
+      // Simple randomized DFS
+      while (stack.length > 0) {
+          const current = stack.pop()!;
+          if (current === end) {
+              // Reconstruct path
+              const path = new Set<number>();
+              let temp = end;
+              while (temp !== start) {
+                  path.add(temp);
+                  temp = pathMap.get(temp)!;
+              }
+              path.add(start);
+              return path;
+          }
+
+          const row = Math.floor(current / size);
+          const col = current % size;
+          const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+          
+          // Shuffle directions for randomness
+          for (let i = directions.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [directions[i], directions[j]] = [directions[j], directions[i]];
+          }
+
+          for (const [dy, dx] of directions) {
+              const newRow = row + dy;
+              const newCol = col + dx;
+              if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+                  const nextIndex = newRow * size + newCol;
+                  if (!visited.has(nextIndex)) {
+                      visited.add(nextIndex);
+                      pathMap.set(nextIndex, current);
+                      stack.push(nextIndex);
+                  }
+              }
+          }
+      }
+      // Fallback (should rarely happen on empty grid)
+      return new Set();
+  };
+
   // Generate a new board state
   const generateLevel = useCallback((currentSize: number, currentPlayerIndex: number, currentLevel: number) => {
-    const { wallCountMin, wallCountMax } = calculateDifficulty(currentLevel);
+    const { wallCountMin, wallCountMax, complexity } = calculateDifficulty(currentLevel);
     const totalTiles = currentSize * currentSize;
     
     let newTargetIndex: number;
@@ -190,7 +244,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             }
         }
 
-        // Fallback
         if (possibleTargets.length === 0) {
             for (let i = 0; i < totalTiles; i++) {
                  if (i !== currentPlayerIndex) possibleTargets.push(i);
@@ -199,31 +252,62 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
         newTargetIndex = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
 
-        // 2. Determine Walls
-        const possibleWalls: number[] = [];
-        for (let i = 0; i < totalTiles; i++) {
-            if (i !== currentPlayerIndex && i !== newTargetIndex) {
-                possibleWalls.push(i);
+        // 2. Determine Generation Strategy
+        // If complexity is high, we use "Corridor" generation (Maze-like), otherwise "Scatter" (Random noise)
+        const useCorridorStrategy = Math.random() < complexity;
+
+        if (useCorridorStrategy) {
+            // STRATEGY: CORRIDOR / MAZE
+            // 1. Generate a guaranteed path P -> T
+            const guaranteedPath = generateRandomPath(currentSize, currentPlayerIndex, newTargetIndex);
+            
+            // 2. Fill the REST of the board with walls
+            const allOtherTiles: number[] = [];
+            for (let i = 0; i < totalTiles; i++) {
+                if (!guaranteedPath.has(i)) {
+                    allOtherTiles.push(i);
+                }
+            }
+
+            // 3. Randomly remove some walls to create "decoys" or open space
+            // The higher the complexity, the fewer walls we remove (tighter corridors)
+            const fillFactor = 0.4 + (Math.random() * 0.3); // Keep 40-70% of non-path tiles as walls
+            
+            for (const tileIndex of allOtherTiles) {
+                if (Math.random() < fillFactor) {
+                    newWalls.add(tileIndex);
+                }
+            }
+
+        } else {
+            // STRATEGY: SCATTER (Classic)
+            const possibleWalls: number[] = [];
+            for (let i = 0; i < totalTiles; i++) {
+                if (i !== currentPlayerIndex && i !== newTargetIndex) {
+                    possibleWalls.push(i);
+                }
+            }
+
+            // Shuffle
+            for (let i = possibleWalls.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [possibleWalls[i], possibleWalls[j]] = [possibleWalls[j], possibleWalls[i]];
+            }
+
+            // Pick Walls based on difficulty settings
+            const count = Math.floor(Math.random() * (wallCountMax - wallCountMin + 1)) + wallCountMin;
+
+            for (let i = 0; i < count; i++) {
+                if (possibleWalls.length > 0) {
+                    newWalls.add(possibleWalls.pop()!);
+                }
             }
         }
 
-        // Shuffle
-        for (let i = possibleWalls.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [possibleWalls[i], possibleWalls[j]] = [possibleWalls[j], possibleWalls[i]];
-        }
-
-        // Pick Walls based on difficulty
-        const count = Math.floor(Math.random() * (wallCountMax - wallCountMin + 1)) + wallCountMin;
-
-        for (let i = 0; i < count; i++) {
-            if (possibleWalls.length > 0) {
-                newWalls.add(possibleWalls.pop()!);
-            }
-        }
         attempts++;
     } while (!isSolvable(currentSize, currentPlayerIndex, newTargetIndex, newWalls) && attempts < MAX_ATTEMPTS);
 
+    // Emergency fallback: Clear walls if we couldn't solve it
     if (attempts >= MAX_ATTEMPTS) {
         newWalls.clear();
     }
