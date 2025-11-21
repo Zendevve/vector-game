@@ -620,7 +620,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
             return (
                 <div 
-                    key={`${score}-${index}`}
+                    key={`${gridSize}-${index}`}
                     className="w-full h-full p-1"
                     style={{ 
                         animation: `tile-enter 0.3s cubic-bezier(0.2, 0, 0.2, 1) ${staggerDelay}ms backwards` 
