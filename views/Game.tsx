@@ -626,7 +626,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                         animation: `tile-enter 0.3s cubic-bezier(0.2, 0, 0.2, 1) ${staggerDelay}ms backwards` 
                     }}
                 >
-                    <Tile type={type} isHit={isHit} isDanger={isDanger} />
+                    <Tile type={type} isHit={isHit} isDanger={isDanger} mode={mode} />
                 </div>
             );
           })}
