@@ -36,61 +36,56 @@ const calculateDifficulty = (level: number) => {
   let wallCountMax = 0;
   let timeLimit = 5000;
 
-  // Phase 1: Training (Levels 1-8)
-  // Focus: Onboarding -> High speed 3x3
-  if (level <= 8) {
+  // Phase 1: Onboarding (Levels 1-5)
+  // Gentle introduction. 3x3 Grid. Minimal obstacles.
+  if (level <= 5) {
       gridSize = 3;
-      if (level <= 3) {
-          wallCountMin = 0;
-          wallCountMax = 0;
-      } else {
-          wallCountMin = 1;
-          wallCountMax = 2;
-      }
-      // 5000ms -> 3000ms
-      timeLimit = Math.max(3000, 5000 - (level * 250)); 
+      wallCountMin = level <= 2 ? 0 : 1;
+      wallCountMax = level <= 2 ? 0 : 2;
+      // Generous time to learn controls: 5000ms -> 3800ms
+      timeLimit = Math.max(3800, 5000 - (level * 240)); 
   } 
-  // Phase 2: Expansion (Levels 9-20)
-  // Focus: Adapting to 4x4 space
-  else if (level <= 20) {
+  // Phase 2: Expansion (Levels 6-15)
+  // Jump to 4x4. Space opens up, but walls appear consistently.
+  else if (level <= 15) {
       gridSize = 4;
       wallCountMin = 2;
       wallCountMax = 4;
-      // 5500ms -> 3500ms (Reset time slightly for larger grid)
-      timeLimit = Math.max(3500, 5500 - ((level - 8) * 180));
+      // Time resets slightly for larger grid: 5000ms -> 3200ms
+      timeLimit = Math.max(3200, 5000 - ((level - 5) * 180));
   }
-  // Phase 3: Density (Levels 21-35)
-  // Focus: 4x4 with high obstacle count
-  else if (level <= 35) {
+  // Phase 3: Compression (Levels 16-30)
+  // 4x4 Grid fills up. Pathfinding becomes tighter.
+  else if (level <= 30) {
       gridSize = 4;
-      wallCountMin = 5;
-      wallCountMax = 7;
-      // 3500ms -> 2500ms
-      timeLimit = Math.max(2500, 4000 - ((level - 20) * 100));
+      wallCountMin = 4;
+      wallCountMax = 8; // High density for 4x4
+      // Strict timing: 3200ms -> 2000ms
+      timeLimit = Math.max(2000, 3200 - ((level - 15) * 80));
   }
-  // Phase 4: Complexity (Levels 36-50)
-  // Focus: Adapting to 5x5 space
+  // Phase 4: Scale (Levels 31-50)
+  // Jump to 5x5. Long range navigation logic required.
   else if (level <= 50) {
       gridSize = 5;
       wallCountMin = 6;
       wallCountMax = 10;
-      // 6000ms -> 3000ms
-      timeLimit = Math.max(3000, 6000 - ((level - 35) * 200));
+      // Time bump for distance: 4500ms -> 2500ms
+      timeLimit = Math.max(2500, 4500 - ((level - 30) * 100));
   }
-  // Phase 5: Overload (Levels 51+)
-  // Focus: 5x5 Maximum density & Reflexes
+  // Phase 5: Velocity (Levels 51+)
+  // 5x5 Grid. High Chaos. Reflex test.
   else {
       gridSize = 5;
       wallCountMin = 10;
-      wallCountMax = 13;
-      // Caps at 1500ms
-      timeLimit = Math.max(1500, 3500 - ((level - 50) * 80));
+      wallCountMax = 15;
+      // Extreme speed: 2500ms -> 1200ms hard cap
+      timeLimit = Math.max(1200, 2500 - ((level - 50) * 50));
   }
   
   // Safety Clamp: Ensure the grid is never impossible to generate
-  // We need at least 2 empty spots for Player & Target, plus pathing buffer
+  // We need at least ~6 empty spots for Player, Target, and a viable path buffer
   const area = gridSize * gridSize;
-  const safeLimit = area - 5; // Leave at least 5 tiles open (Player, Target, +3 for path)
+  const safeLimit = area - 6; 
   
   wallCountMax = Math.min(wallCountMax, safeLimit);
   wallCountMin = Math.min(wallCountMin, wallCountMax);
