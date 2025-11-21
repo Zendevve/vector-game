@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
 import { TileType, GameMode } from '../types';
 import { Pause, Play, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { haptics } from '../utils/haptics';
 
 interface GameProps {
   mode: GameMode;
@@ -411,9 +413,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
         // LAVA MODE: Moving out of bounds is fatal (Void Fall)
         if (mode === GameMode.LAVA) {
+            haptics.failure();
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
             // CLASSIC MODE: Penalty
+            haptics.thud();
             setTimeLeft(prev => Math.max(0, prev - 500));
         }
         return; 
@@ -425,9 +429,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     if (walls.has(newIndex)) {
         setHitWallIndex(newIndex);
         spawnParticles(newIndex, 'COLLISION');
+        haptics.thud();
         
         // LAVA MODE: Touching a wall is fatal (Firewall)
         if (mode === GameMode.LAVA) {
+            haptics.failure();
             handleGameOver({ title: 'CRITICAL FAILURE', desc: 'INCINERATED BY FIREWALL' });
             return;
         }
@@ -446,6 +452,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     if (newIndex === targetIndex) {
         spawnParticles(newIndex, 'SUCCESS');
+        haptics.success();
         const nextLevel = score + 1;
         setScore(nextLevel);
         
@@ -468,6 +475,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
     } else {
+        haptics.tick();
         setPlayerIndex(newIndex);
     }
   }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);
