@@ -95,7 +95,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   // Visual Effects State
   const [particles, setParticles] = useState<Particle[]>([]);
   const [swipeFeedback, setSwipeFeedback] = useState<{ direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', id: number } | null>(null);
-  const [gameOverEffect, setGameOverEffect] = useState<'CRITICAL' | 'VOID' | 'TIMEOUT' | null>(null);
 
   const timerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
@@ -340,7 +339,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setHitWallIndex(null);
     setParticles([]);
     setSwipeFeedback(null);
-    setGameOverEffect(null);
     isProcessingMove.current = false;
     
     setIsPlaying(true);
@@ -388,30 +386,12 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const handleGameOver = (reason?: { title: string, desc: string }) => {
     stopTimer();
     setIsPlaying(false);
-    
-    const finalScore = scoreRef.current;
-    let delay = 100; // Default short delay
-
-    if (reason?.title === 'CRITICAL FAILURE') {
-         setGameOverEffect('CRITICAL');
-         delay = 800;
-    } else if (reason?.title === 'SIGNAL LOST') {
-         setGameOverEffect('VOID');
-         delay = 600;
-    } else if (reason?.title === 'TERMINATED') {
-         setGameOverEffect('TIMEOUT');
-         delay = 1000;
-    }
-
-    // Delay call to parent to allow animation to play
-    setTimeout(() => {
-        onEndGame(finalScore, reason);
-    }, delay);
+    onEndGame(scoreRef.current, reason);
   };
 
   // Movement & Progression
   const movePlayer = useCallback((dx: number, dy: number) => {
-    if (!isPlaying || isPaused || gameOverEffect) return;
+    if (!isPlaying || isPaused) return;
     
     // Prevent diagonal/simultaneous inputs
     if (isProcessingMove.current) return;
@@ -490,7 +470,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     } else {
         setPlayerIndex(newIndex);
     }
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode, gameOverEffect]);
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);
 
   // Keyboard
   useEffect(() => {
@@ -550,18 +530,12 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   // Calculate Player Animation Position
   const playerRow = Math.floor(playerIndex / gridSize);
   const playerCol = playerIndex % gridSize;
-
-  // Conditional Styling for Player Overlay based on Game Over Effect
-  let playerOverlayClass = "absolute transition-all duration-100 ease-out p-1 z-30";
-  if (gameOverEffect === 'CRITICAL') {
-      playerOverlayClass += " animate-[death-critical_0.4s_ease-out_forwards]";
-  } else if (gameOverEffect === 'VOID') {
-      playerOverlayClass += " animate-[death-void_0.4s_ease-out_forwards]";
-  }
+  
+  const playerOverlayClass = "absolute transition-all duration-100 ease-out p-1 z-30";
 
   return (
     <div 
-        className={`flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans touch-none ${gameOverEffect ? 'pointer-events-none' : ''}`}
+        className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans touch-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
     >
@@ -571,20 +545,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
            0% { opacity: 0; transform: scale(0.8); }
            20% { opacity: 1; transform: scale(1.2); }
            100% { opacity: 0; transform: scale(1.5); }
-         }
-         @keyframes death-critical {
-            0% { transform: scale(1); background-color: #fff; box-shadow: 0 0 0 rgba(255,0,0,0); }
-            20% { transform: scale(1.2); background-color: #ef4444; box-shadow: 0 0 30px rgba(220, 38, 38, 0.8); }
-            100% { transform: scale(2); opacity: 0; }
-         }
-         @keyframes death-void {
-            0% { transform: scale(1) rotate(0deg); opacity: 1; }
-            100% { transform: scale(0) rotate(45deg); opacity: 0; }
-         }
-         @keyframes overlay-flash {
-            0% { opacity: 0; }
-            10% { opacity: 1; }
-            100% { opacity: 0.8; }
          }
       `}</style>
 
@@ -671,13 +631,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
               <Tile type={TileType.PLAYER} />
           </div>
 
-          {/* Timeout Overlay */}
-          {gameOverEffect === 'TIMEOUT' && (
-            <div className="absolute inset-0 bg-red-950/50 backdrop-blur-[2px] z-50 flex items-center justify-center animate-[overlay-flash_0.3s_ease-out_forwards] rounded-md border border-red-900/30">
-                <span className="text-red-500 font-bold tracking-[0.5em] text-2xl">TERMINATED</span>
-            </div>
-          )}
-
           {/* Particles Overlay */}
           {particles.map(p => (
             <div
@@ -697,7 +650,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
         
         {/* Swipe Feedback Overlay */}
-        {swipeFeedback && !gameOverEffect && (
+        {swipeFeedback && (
              <div 
                 key={swipeFeedback.id}
                 className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
@@ -720,7 +673,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                 onClick={initializeGame}
                 className="text-neutral-600 hover:text-white transition-colors p-2"
                 aria-label="Restart Run"
-                disabled={!!gameOverEffect}
             >
                <RotateCcw size={20} />
             </button>
@@ -729,7 +681,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                 onClick={() => setIsPaused(!isPaused)}
                 className="text-neutral-600 hover:text-white transition-colors p-2"
                 aria-label={isPaused ? "Resume" : "Pause"}
-                disabled={!!gameOverEffect}
             >
                {isPaused ? <Play size={20} /> : <Pause size={20} />}
             </button>
@@ -737,7 +688,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       </div>
 
       {/* Paused Overlay */}
-      {isPaused && !gameOverEffect && (
+      {isPaused && (
         <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in">
             <div className="w-full max-w-[240px] space-y-4 text-center">
                 <h2 className="text-xl font-bold text-white tracking-[0.3em] mb-8 uppercase">Paused</h2>
