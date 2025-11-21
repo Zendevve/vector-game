@@ -77,7 +77,11 @@ const App: React.FC = () => {
       `}</style>
       
       {viewState === ViewState.MENU && (
-        <MainMenu onStartGame={handleStartGame} highScores={highScores} />
+        <MainMenu 
+          onStartGame={handleStartGame} 
+          highScores={highScores} 
+          activeMode={activeMode}
+        />
       )}
 
       {viewState === ViewState.GAME && (

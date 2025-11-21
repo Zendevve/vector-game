@@ -9,9 +9,10 @@ import { Tile } from '../components/Tile';
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
   highScores: HighScores;
+  activeMode: GameMode;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, activeMode }) => {
   const [activeDesc, setActiveDesc] = useState<string>("SELECT PROTOCOL");
   const [showHelp, setShowHelp] = useState<boolean>(false);
 
@@ -32,7 +33,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen w-full max-w-md mx-auto p-8 font-sans relative">
+    <div className="flex flex-col items-center min-h-screen w-full max-w-md md:max-w-full mx-auto p-8 font-sans relative">
       <style>{`
         @keyframes intro-logo {
           0% { opacity: 0; transform: scale(0.95) translateY(10px); filter: blur(10px); }
@@ -55,6 +56,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
           20% { opacity: 1; }
           80% { transform: translateX(12px); opacity: 1; }
           100% { transform: translateX(20px); opacity: 0; }
+        }
+        @keyframes pulse-indicator {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.8); }
         }
         
         /* Custom Minimalist Scrollbar */
@@ -104,11 +109,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
             onClick={() => onStartGame(GameMode.CLASSIC)}
             onMouseEnter={() => handleMouseEnter("REACH THE TARGET. AVOID WALLS. BE QUICK.")}
             onMouseLeave={handleMouseLeave}
-            className="relative group"
+            className={`relative group transition-all duration-300 ${activeMode === GameMode.CLASSIC ? 'border-white bg-white/5' : 'border-white/20'}`}
           >
             <div className="flex items-center justify-between w-full px-2">
-              <span>RUN</span>
-              <span className="text-[10px] font-mono font-normal text-neutral-500 group-hover:text-white transition-colors">
+              <div className="flex items-center gap-3">
+                {activeMode === GameMode.CLASSIC && (
+                  <div className="w-1.5 h-1.5 bg-white rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
+                )}
+                <span>RUN</span>
+              </div>
+              <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.CLASSIC ? 'text-white' : 'text-neutral-500 group-hover:text-white'}`}>
                 BEST {highScores[GameMode.CLASSIC] || 0}
               </span>
             </div>
@@ -121,11 +131,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores }) =
             onClick={() => onStartGame(GameMode.LAVA)}
             onMouseEnter={() => handleMouseEnter("EXTREME HAZARD. WALLS KILL. VOID FALLS FATAL.")}
             onMouseLeave={handleMouseLeave}
-            className="relative group"
+            className={`relative group transition-all duration-300 ${activeMode === GameMode.LAVA ? 'border-red-500 bg-red-950/20' : ''}`}
           >
              <div className="flex items-center justify-between w-full px-2">
-              <span>FLOOR IS LAVA</span>
-              <span className="text-[10px] font-mono font-normal text-red-900 group-hover:text-red-400 transition-colors">
+              <div className="flex items-center gap-3">
+                {activeMode === GameMode.LAVA && (
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
+                )}
+                <span>FLOOR IS LAVA</span>
+              </div>
+              <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.LAVA ? 'text-red-400' : 'text-red-900 group-hover:text-red-400'}`}>
                 BEST {highScores[GameMode.LAVA] || 0}
               </span>
             </div>
