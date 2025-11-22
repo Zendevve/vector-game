@@ -131,7 +131,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
             onClick={() => onStartGame(GameMode.LAVA)}
             onMouseEnter={() => handleMouseEnter("EXTREME HAZARD. WALLS KILL. VOID FALLS FATAL.")}
             onMouseLeave={handleMouseLeave}
-            className={`relative group transition-all duration-300 ${activeMode === GameMode.LAVA ? 'border-red-500 bg-red-950/20' : ''}`}
+            className={`relative group transition-all duration-300 ${activeMode === GameMode.LAVA ? 'border-red-500 bg-red-950/20 text-red-500' : ''}`}
           >
              <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">

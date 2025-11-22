@@ -21,7 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
     // Changed from solid white to outlined transparent for minimalist look
     primary: "bg-transparent text-white border-white/20 hover:border-white hover:bg-white/5 active:scale-[0.99]",
     secondary: "bg-transparent text-neutral-400 border-neutral-800 hover:text-white hover:border-neutral-600 hover:bg-white/5 active:scale-[0.99]",
-    danger: "bg-transparent text-red-600 border-red-900/30 hover:border-red-500 hover:bg-red-950/10 active:scale-[0.99]",
+    danger: "bg-transparent text-red-800 border-red-900/30 hover:text-red-500 hover:border-red-500 hover:bg-red-950/10 active:scale-[0.99]",
     ghost: "bg-transparent text-neutral-500 border-transparent hover:text-white hover:bg-white/5",
   };
 
