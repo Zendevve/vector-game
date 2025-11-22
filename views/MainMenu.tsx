@@ -102,6 +102,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           className="flex flex-col gap-4 w-full max-w-[320px]"
           style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards', opacity: 0 }}
         >
+          {/* CLASSIC MODE */}
           <Button 
             variant="primary" 
             size="lg" 
@@ -124,6 +125,30 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
             </div>
           </Button>
           
+          {/* FRAGILE MODE */}
+          <Button 
+            variant="fragile" 
+            size="lg" 
+            fullWidth 
+            onClick={() => onStartGame(GameMode.FRAGILE)}
+            onMouseEnter={() => handleMouseEnter("STRUCTURAL DECAY. NO BACKTRACKING. ONE WAY.")}
+            onMouseLeave={handleMouseLeave}
+            className={`relative group transition-all duration-300 ${activeMode === GameMode.FRAGILE ? 'border-indigo-400 bg-indigo-950/20 text-indigo-400' : ''}`}
+          >
+             <div className="flex items-center justify-between w-full px-2">
+              <div className="flex items-center gap-3">
+                {activeMode === GameMode.FRAGILE && (
+                  <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
+                )}
+                <span>FRAGILE</span>
+              </div>
+              <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.FRAGILE ? 'text-indigo-300' : 'text-indigo-900 group-hover:text-indigo-300'}`}>
+                BEST {highScores[GameMode.FRAGILE] || 0}
+              </span>
+            </div>
+          </Button>
+
+          {/* LAVA MODE */}
           <Button 
             variant="danger" 
             size="lg" 
@@ -176,7 +201,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                 CREATED BY ZENDEVVE
             </div>
             <div className="text-neutral-900 text-[9px] font-mono select-none">
-                SYS.V.3.7
+                SYS.V.3.8
             </div>
         </div>
       </div>
@@ -272,7 +297,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                                 <span><strong className="text-white">RUN:</strong> Standard operation. Walls block path. Time is your enemy.</span>
                             </li>
                             <li className="flex gap-3">
-                                <span className="text-red-500 font-bold">02</span>
+                                <span className="text-indigo-400 font-bold">02</span>
+                                <span><strong className="text-indigo-300">FRAGILE:</strong> Tiles crack after contact. Stepping on a visited tile causes structural collapse.</span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="text-red-500 font-bold">03</span>
                                 <span><strong className="text-red-400">LAVA:</strong> Zero tolerance. Hitting a wall or swiping into the void causes immediate termination.</span>
                             </li>
                         </ul>

@@ -115,6 +115,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const [playerIndex, setPlayerIndex] = useState<number>(0);
   const [targetIndex, setTargetIndex] = useState<number>(0);
   const [walls, setWalls] = useState<Set<number>>(new Set());
+  const [visitedIndices, setVisitedIndices] = useState<Set<number>>(new Set());
   const [hitWallIndex, setHitWallIndex] = useState<number | null>(null);
 
   // Visual Effects State
@@ -219,6 +220,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const { wallCountMin, wallCountMax, complexity } = calculateDifficulty(currentLevel);
     const totalTiles = currentSize * currentSize;
     
+    // Reset visited tiles for FRAGILE mode
+    setVisitedIndices(new Set());
+
     let newTargetIndex: number;
     let newWalls: Set<number>;
     let attempts = 0;
@@ -342,7 +346,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         if (type === 'SUCCESS') {
             color = Math.random() > 0.5 ? '#06b6d4' : '#ffffff';
         } else if (type === 'COLLISION') {
-            color = Math.random() > 0.5 ? '#dc2626' : '#262626';
+            if (mode === GameMode.FRAGILE) {
+                 color = Math.random() > 0.5 ? '#818cf8' : '#312e81'; // Indigo for Fragile
+            } else {
+                 color = Math.random() > 0.5 ? '#dc2626' : '#262626';
+            }
         }
         
         newParticles.push({
@@ -550,8 +558,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     // CHECK BOUNDS
     if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
-        // LAVA MODE: Moving out of bounds is fatal (Void Fall)
-        if (mode === GameMode.LAVA) {
+        // LAVA & FRAGILE MODE: Moving out of bounds is fatal (Void Fall)
+        if (mode === GameMode.LAVA || mode === GameMode.FRAGILE) {
             haptics.failure();
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
@@ -570,11 +578,17 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         spawnParticles(newIndex, 'COLLISION');
         haptics.thud();
         
-        // LAVA MODE: Touching a wall is fatal (Firewall)
+        // LAVA & FRAGILE MODE: Touching a wall is fatal
         if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'CRITICAL FAILURE', desc: 'INCINERATED BY FIREWALL' });
             return;
+        }
+        
+        if (mode === GameMode.FRAGILE) {
+             haptics.failure();
+             handleGameOver({ title: 'CRITICAL FAILURE', desc: 'IMPACT DESTABILIZED CORE' });
+             return;
         }
 
         // Classic Mode: Penalize
@@ -587,6 +601,15 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }, 200);
         
         return;
+    }
+
+    // CHECK FRAGILE MODE BACKTRACKING
+    if (mode === GameMode.FRAGILE && visitedIndices.has(newIndex)) {
+         setHitWallIndex(newIndex);
+         spawnParticles(newIndex, 'COLLISION');
+         haptics.failure();
+         handleGameOver({ title: 'STRUCTURAL COLLAPSE', desc: 'ATTEMPTED TO CROSS DECAYED PATH' });
+         return;
     }
 
     if (newIndex === targetIndex) {
@@ -614,10 +637,17 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
     } else {
+        // SUCCESSFUL MOVE
         haptics.tick();
+        
+        // FRAGILE MODE: Mark previous tile as visited (cracked)
+        if (mode === GameMode.FRAGILE) {
+            setVisitedIndices(prev => new Set(prev).add(playerIndex));
+        }
+
         setPlayerIndex(newIndex);
     }
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode]);
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode, visitedIndices]);
 
   // Keep movePlayerRef in sync
   useEffect(() => {
@@ -719,8 +749,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
 
         <div className="flex flex-col items-end">
-           <span className={`text-[10px] font-bold tracking-[0.2em] mb-1 ${mode === GameMode.LAVA ? 'text-red-600' : 'text-neutral-600'}`}>
-             {mode === GameMode.LAVA ? 'LAVA MODE' : 'TIMER'}
+           <span className={`text-[10px] font-bold tracking-[0.2em] mb-1 ${mode === GameMode.LAVA ? 'text-red-600' : mode === GameMode.FRAGILE ? 'text-indigo-400' : 'text-neutral-600'}`}>
+             {mode === GameMode.LAVA ? 'LAVA MODE' : mode === GameMode.FRAGILE ? 'FRAGILE MODE' : 'TIMER'}
            </span>
            <span className={`text-3xl font-bold tracking-tight font-mono ${timeLeft < 1000 ? 'text-red-500' : 'text-white'}`}>
             {(timeLeft / 1000).toFixed(2)}s
@@ -732,7 +762,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       <div className="w-full px-8 mb-8 z-20">
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
-                className={`h-full ${mode === GameMode.LAVA ? 'bg-red-500' : 'bg-white'}`}
+                className={`h-full ${mode === GameMode.LAVA ? 'bg-red-500' : mode === GameMode.FRAGILE ? 'bg-indigo-500' : 'bg-white'}`}
                 style={{ width: `${Math.max(0, (timeLeft / maxTime) * 100)}%` }}
             />
         </div>
@@ -758,6 +788,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             else if (walls.has(index)) type = TileType.WALL;
             
             const isHit = index === hitWallIndex;
+            const isVisited = visitedIndices.has(index);
             
             const pRow = Math.floor(playerIndex / gridSize);
             const pCol = playerIndex % gridSize;
@@ -765,7 +796,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             const tCol = index % gridSize;
             const isAdjacent = Math.abs(pRow - tRow) + Math.abs(pCol - tCol) === 1;
             
-            const isDanger = mode === GameMode.LAVA && walls.has(index) && isAdjacent;
+            const isDanger = (mode === GameMode.LAVA && walls.has(index) && isAdjacent);
             
             // Stagger animation based on grid position
             const staggerDelay = (tRow + tCol) * 20;
@@ -778,7 +809,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                         animation: `tile-enter 0.3s cubic-bezier(0.2, 0, 0.2, 1) ${staggerDelay}ms backwards` 
                     }}
                 >
-                    <Tile type={type} isHit={isHit} isDanger={isDanger} mode={mode} />
+                    <Tile type={type} isHit={isHit} isDanger={isDanger} isVisited={isVisited} mode={mode} />
                 </div>
             );
           })}

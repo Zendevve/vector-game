@@ -48,6 +48,8 @@ const App: React.FC = () => {
             return 'text-red-600 animate-burn';
         case 'SIGNAL LOST': // Void Fall
             return 'text-neutral-500 animate-glitch';
+        case 'STRUCTURAL COLLAPSE': // Fragile mode failure
+            return 'text-indigo-500 animate-pulse';
         case 'TERMINATED': // Time Out
             return 'text-red-500';
         default:

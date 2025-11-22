@@ -5,10 +5,11 @@ interface TileProps {
   type: TileType;
   isHit?: boolean;
   isDanger?: boolean;
+  isVisited?: boolean;
   mode?: GameMode;
 }
 
-export const Tile: React.FC<TileProps> = ({ type, isHit, isDanger, mode }) => {
+export const Tile: React.FC<TileProps> = ({ type, isHit, isDanger, isVisited, mode }) => {
   let baseClass = "w-full h-full rounded-md transition-all duration-100";
   
   switch (type) {
@@ -41,8 +42,13 @@ export const Tile: React.FC<TileProps> = ({ type, isHit, isDanger, mode }) => {
         break;
     case TileType.EMPTY:
     default:
-        // Minimal dark background
-        baseClass += " bg-neutral-950/50 border border-white/10";
+        if (mode === GameMode.FRAGILE && isVisited) {
+            // Cracked/Fragile state: Hollow, indigo border, low opacity
+            baseClass += " bg-transparent border border-indigo-500/30 shadow-[inset_0_0_10px_rgba(99,102,241,0.1)] scale-90";
+        } else {
+            // Minimal dark background
+            baseClass += " bg-neutral-950/50 border border-white/10";
+        }
         break;
   }
 

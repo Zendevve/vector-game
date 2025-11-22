@@ -6,11 +6,13 @@ const STORAGE_KEY = 'vector_highscores_v1';
 export interface HighScores {
   [GameMode.CLASSIC]: number;
   [GameMode.LAVA]: number;
+  [GameMode.FRAGILE]: number;
 }
 
 const DEFAULT_SCORES: HighScores = {
   [GameMode.CLASSIC]: 0,
   [GameMode.LAVA]: 0,
+  [GameMode.FRAGILE]: 0,
 };
 
 export const getHighScores = (): HighScores => {
@@ -21,6 +23,7 @@ export const getHighScores = (): HighScores => {
       return { 
         [GameMode.CLASSIC]: parsed[GameMode.CLASSIC] || 0,
         [GameMode.LAVA]: parsed[GameMode.LAVA] || 0,
+        [GameMode.FRAGILE]: parsed[GameMode.FRAGILE] || 0,
       };
     }
   } catch (e) {

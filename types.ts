@@ -8,6 +8,7 @@ export enum ViewState {
 export enum GameMode {
   CLASSIC = 'CLASSIC',
   LAVA = 'LAVA',
+  FRAGILE = 'FRAGILE',
 }
 
 export interface TileData {
