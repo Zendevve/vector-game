@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { MainMenu } from './views/MainMenu';
 import { Game } from './views/Game';
 import { ViewState, GameMode } from './types';
 import { Button } from './components/Button';
 import { getHighScores, saveHighScore, HighScores } from './utils/storage';
+import { haptics } from './utils/haptics';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
@@ -12,6 +12,9 @@ const App: React.FC = () => {
   const [gameOverDetails, setGameOverDetails] = useState<{title: string, desc: string}>({ title: 'Terminated', desc: 'Time limit exceeded' });
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
   const [activeMode, setActiveMode] = useState<GameMode>(GameMode.CLASSIC);
+  
+  // Game Over Navigation: 0=Retry, 1=Abort
+  const [gameOverIndex, setGameOverIndex] = useState<number>(0);
 
   const handleStartGame = (mode: GameMode) => {
     setActiveMode(mode);
@@ -27,11 +30,11 @@ const App: React.FC = () => {
         setGameOverDetails({ title: 'TERMINATED', desc: 'TIME LIMIT EXCEEDED' });
     }
 
-    // Save high score (local storage only)
     const newScores = saveHighScore(activeMode, score);
     setHighScores(newScores);
 
     setViewState(ViewState.GAME_OVER);
+    setGameOverIndex(0); // Reset selection
   };
 
   const handleBackToMenu = () => {
@@ -42,15 +45,49 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
+  // Keyboard Navigation for Game Over Screen
+  useEffect(() => {
+    if (viewState !== ViewState.GAME_OVER) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+        switch(e.key) {
+            case 'ArrowUp': 
+            case 'w': 
+            case 'W':
+                e.preventDefault();
+                setGameOverIndex(prev => (prev === 1 ? 0 : 1));
+                haptics.tick();
+                break;
+            case 'ArrowDown': 
+            case 's': 
+            case 'S':
+                e.preventDefault();
+                setGameOverIndex(prev => (prev === 0 ? 1 : 0));
+                haptics.tick();
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                haptics.playClick();
+                if (gameOverIndex === 0) handleRetry();
+                else handleBackToMenu();
+                break;
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewState, gameOverIndex]);
+
   const getGameOverStyle = (title: string) => {
     switch (title) {
-        case 'CRITICAL FAILURE': // Lava Wall Hit
+        case 'CRITICAL FAILURE': 
             return 'text-red-600 animate-burn';
-        case 'SIGNAL LOST': // Void Fall
+        case 'SIGNAL LOST': 
             return 'text-neutral-500 animate-glitch';
-        case 'STRUCTURAL COLLAPSE': // Fragile mode failure
+        case 'STRUCTURAL COLLAPSE': 
             return 'text-indigo-500 animate-pulse';
-        case 'TERMINATED': // Time Out
+        case 'TERMINATED': 
             return 'text-red-500';
         default:
             return 'text-white';
@@ -127,14 +164,16 @@ const App: React.FC = () => {
                     variant="primary" 
                     size="lg" 
                     fullWidth 
+                    isSelected={gameOverIndex === 0}
                     onClick={handleRetry}
                 >
-                    Reinitialize
+                    Reinitialize (ENTER)
                 </Button>
                 <Button 
                     variant="danger" 
                     size="lg" 
                     fullWidth 
+                    isSelected={gameOverIndex === 1}
                     onClick={handleBackToMenu}
                 >
                     Abort

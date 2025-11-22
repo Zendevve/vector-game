@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
@@ -13,83 +12,63 @@ interface GameProps {
   highScore: number;
 }
 
-// Configuration Constants
 const TIME_DECREMENT_INTERVAL = 10;
 
-// Particle Interface
 interface Particle {
   id: number;
-  x: number; // % relative to board
-  y: number; // % relative to board
+  x: number; 
+  y: number; 
   vx: number;
   vy: number;
-  life: number; // 0.0 - 1.0
+  life: number; 
   color: string;
   size: number;
   decay: number;
 }
 
-// Adaptive Difficulty Logic
 const calculateDifficulty = (level: number) => {
   let gridSize = 3;
   let wallCountMin = 0;
   let wallCountMax = 0;
   let timeLimit = 5000;
-  let complexity = 0; // 0 = simple, 1 = moderate, 2 = complex (maze-like)
+  let complexity = 0;
 
-  // Phase 1: Onboarding (Levels 1-5)
-  // Gentle introduction. 3x3 Grid. Minimal obstacles.
   if (level <= 5) {
       gridSize = 3;
       wallCountMin = level <= 2 ? 0 : 1;
       wallCountMax = level <= 2 ? 0 : 2;
-      // Generous time to learn controls: 5000ms -> 3800ms
       timeLimit = Math.max(3800, 5000 - (level * 240)); 
       complexity = 0;
   } 
-  // Phase 2: Expansion (Levels 6-15)
-  // Jump to 4x4. Space opens up, but walls appear consistently.
   else if (level <= 15) {
       gridSize = 4;
       wallCountMin = 2;
       wallCountMax = 4;
-      // Time resets slightly for larger grid: 5000ms -> 3200ms
       timeLimit = Math.max(3200, 5000 - ((level - 5) * 180));
-      complexity = 0.2; // 20% chance of complex structures
+      complexity = 0.2;
   }
-  // Phase 3: Compression (Levels 16-30)
-  // 4x4 Grid fills up. Pathfinding becomes tighter.
   else if (level <= 30) {
       gridSize = 4;
       wallCountMin = 4;
-      wallCountMax = 8; // High density for 4x4
-      // Strict timing: 3200ms -> 2000ms
+      wallCountMax = 8;
       timeLimit = Math.max(2000, 3200 - ((level - 15) * 80));
-      complexity = 0.5; // 50% chance of complex structures
+      complexity = 0.5;
   }
-  // Phase 4: Scale (Levels 31-50)
-  // Jump to 5x5. Long range navigation logic required.
   else if (level <= 50) {
       gridSize = 5;
       wallCountMin = 6;
       wallCountMax = 10;
-      // Time bump for distance: 4500ms -> 2500ms
       timeLimit = Math.max(2500, 4500 - ((level - 30) * 100));
       complexity = 0.7;
   }
-  // Phase 5: Velocity (Levels 51+)
-  // 5x5 Grid. High Chaos. Reflex test.
   else {
       gridSize = 5;
       wallCountMin = 10;
       wallCountMax = 15;
-      // Extreme speed: 2500ms -> 1200ms hard cap
       timeLimit = Math.max(1200, 2500 - ((level - 50) * 50));
       complexity = 0.9;
   }
   
-  // Safety Clamp: Ensure the grid is never impossible to generate
-  // We need at least ~6 empty spots for Player, Target, and a viable path buffer
   const area = gridSize * gridSize;
   const safeLimit = area - 6; 
   
@@ -100,9 +79,8 @@ const calculateDifficulty = (level: number) => {
 };
 
 export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highScore }) => {
-  // Game State
   const [score, setScore] = useState<number>(1); 
-  const scoreRef = useRef<number>(1); // Ref to keep track of score inside closures
+  const scoreRef = useRef<number>(1); 
   
   const [gridSize, setGridSize] = useState<number>(3);
   const [timeLeft, setTimeLeft] = useState<number>(5000);
@@ -111,14 +89,15 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   
-  // Board State
+  // Pause Menu Navigation: 0=Resume, 1=Retry, 2=Abort
+  const [pauseIndex, setPauseIndex] = useState<number>(0);
+  
   const [playerIndex, setPlayerIndex] = useState<number>(0);
   const [targetIndex, setTargetIndex] = useState<number>(0);
   const [walls, setWalls] = useState<Set<number>>(new Set());
   const [visitedIndices, setVisitedIndices] = useState<Set<number>>(new Set());
   const [hitWallIndex, setHitWallIndex] = useState<number | null>(null);
 
-  // Visual Effects State
   const [particles, setParticles] = useState<Particle[]>([]);
   const [swipeFeedback, setSwipeFeedback] = useState<{ direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', id: number } | null>(null);
 
@@ -126,35 +105,26 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
   const hitTimeoutRef = useRef<number | null>(null);
   const isProcessingMove = useRef<boolean>(false);
-
-  // Input Buffering Refs
   const inputBuffer = useRef<{dx: number, dy: number}[]>([]);
   const movePlayerRef = useRef<((dx: number, dy: number) => void) | null>(null);
   const moveTimeoutRef = useRef<number | null>(null);
 
-  // Sync Ref with State
   useEffect(() => {
     scoreRef.current = score;
   }, [score]);
 
-  // Helper: BFS to check if path exists
   const isSolvable = (size: number, start: number, end: number, currentWalls: Set<number>) => {
     const queue = [start];
     const visited = new Set([start]);
-    
     while (queue.length > 0) {
         const current = queue.shift()!;
         if (current === end) return true;
-
         const row = Math.floor(current / size);
         const col = current % size;
-        
         const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-        
         for (const [dy, dx] of directions) {
             const newRow = row + dy;
             const newCol = col + dx;
-            
             if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
                 const nextIndex = newRow * size + newCol;
                 if (!currentWalls.has(nextIndex) && !visited.has(nextIndex)) {
@@ -167,17 +137,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     return false;
   };
 
-  // Helper: Randomized DFS to find a guaranteed path (for corridor generation)
   const generateRandomPath = (size: number, start: number, end: number): Set<number> => {
       const stack = [start];
-      const pathMap = new Map<number, number>(); // child -> parent
+      const pathMap = new Map<number, number>(); 
       const visited = new Set([start]);
       
-      // Simple randomized DFS
       while (stack.length > 0) {
           const current = stack.pop()!;
           if (current === end) {
-              // Reconstruct path
               const path = new Set<number>();
               let temp = end;
               while (temp !== start) {
@@ -192,7 +159,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
           const col = current % size;
           const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
           
-          // Shuffle directions for randomness
           for (let i = directions.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [directions[i], directions[j]] = [directions[j], directions[i]];
@@ -211,16 +177,13 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
               }
           }
       }
-      // Fallback (should rarely happen on empty grid)
       return new Set();
   };
 
-  // Generate a new board state
   const generateLevel = useCallback((currentSize: number, currentPlayerIndex: number, currentLevel: number) => {
     const { wallCountMin, wallCountMax, complexity } = calculateDifficulty(currentLevel);
     const totalTiles = currentSize * currentSize;
     
-    // Reset visited tiles for FRAGILE mode
     setVisitedIndices(new Set());
 
     let newTargetIndex: number;
@@ -233,19 +196,13 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     do {
         newWalls = new Set();
-        
-        // 1. Determine Valid Targets (Distance > 1)
         const possibleTargets: number[] = [];
         for (let i = 0; i < totalTiles; i++) {
             if (i === currentPlayerIndex) continue;
-
             const tRow = Math.floor(i / currentSize);
             const tCol = i % currentSize;
             const dist = Math.abs(tRow - pRow) + Math.abs(tCol - pCol);
-
-            if (dist > 1) {
-                possibleTargets.push(i);
-            }
+            if (dist > 1) possibleTargets.push(i);
         }
 
         if (possibleTargets.length === 0) {
@@ -255,77 +212,44 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
         newTargetIndex = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
-
-        // 2. Determine Generation Strategy
-        // If complexity is high, we use "Corridor" generation (Maze-like), otherwise "Scatter" (Random noise)
         const useCorridorStrategy = Math.random() < complexity;
 
         if (useCorridorStrategy) {
-            // STRATEGY: CORRIDOR / MAZE
-            // 1. Generate a guaranteed path P -> T
             const guaranteedPath = generateRandomPath(currentSize, currentPlayerIndex, newTargetIndex);
-            
-            // 2. Fill the REST of the board with walls
             const allOtherTiles: number[] = [];
             for (let i = 0; i < totalTiles; i++) {
-                if (!guaranteedPath.has(i)) {
-                    allOtherTiles.push(i);
-                }
+                if (!guaranteedPath.has(i)) allOtherTiles.push(i);
             }
-
-            // 3. Randomly remove some walls to create "decoys" or open space
-            // The higher the complexity, the fewer walls we remove (tighter corridors)
-            const fillFactor = 0.4 + (Math.random() * 0.3); // Keep 40-70% of non-path tiles as walls
-            
+            const fillFactor = 0.4 + (Math.random() * 0.3); 
             for (const tileIndex of allOtherTiles) {
-                if (Math.random() < fillFactor) {
-                    newWalls.add(tileIndex);
-                }
+                if (Math.random() < fillFactor) newWalls.add(tileIndex);
             }
-
         } else {
-            // STRATEGY: SCATTER (Classic)
             const possibleWalls: number[] = [];
             for (let i = 0; i < totalTiles; i++) {
-                if (i !== currentPlayerIndex && i !== newTargetIndex) {
-                    possibleWalls.push(i);
-                }
+                if (i !== currentPlayerIndex && i !== newTargetIndex) possibleWalls.push(i);
             }
-
-            // Shuffle
             for (let i = possibleWalls.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [possibleWalls[i], possibleWalls[j]] = [possibleWalls[j], possibleWalls[i]];
             }
-
-            // Pick Walls based on difficulty settings
             const count = Math.floor(Math.random() * (wallCountMax - wallCountMin + 1)) + wallCountMin;
-
             for (let i = 0; i < count; i++) {
-                if (possibleWalls.length > 0) {
-                    newWalls.add(possibleWalls.pop()!);
-                }
+                if (possibleWalls.length > 0) newWalls.add(possibleWalls.pop()!);
             }
         }
-
         attempts++;
     } while (!isSolvable(currentSize, currentPlayerIndex, newTargetIndex, newWalls) && attempts < MAX_ATTEMPTS);
 
-    // Emergency fallback: Clear walls if we couldn't solve it
-    if (attempts >= MAX_ATTEMPTS) {
-        newWalls.clear();
-    }
+    if (attempts >= MAX_ATTEMPTS) newWalls.clear();
 
     setTargetIndex(newTargetIndex);
     setWalls(newWalls);
   }, []);
 
-  // Particle System Logic
   const spawnParticles = (index: number, type: 'SUCCESS' | 'COLLISION') => {
     const row = Math.floor(index / gridSize);
     const col = index % gridSize;
-    
-    // Center of the tile in percentages
     const tilePercent = 100 / gridSize;
     const startX = (col * tilePercent) + (tilePercent / 2);
     const startY = (row * tilePercent) + (tilePercent / 2);
@@ -334,11 +258,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     if (type === 'SUCCESS') count = 12;
 
     const newParticles: Particle[] = [];
-
     for (let i = 0; i < count; i++) {
         const angle = (Math.PI * 2 * i) / count;
-        let speed = Math.random() * 0.5 + 0.2; // Random speed
-        
+        let speed = Math.random() * 0.5 + 0.2; 
         let decay = 0.04;
         let size = Math.random() * 4 + 2;
         let color = '#ffffff';
@@ -347,7 +269,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             color = Math.random() > 0.5 ? '#06b6d4' : '#ffffff';
         } else if (type === 'COLLISION') {
             if (mode === GameMode.FRAGILE) {
-                 color = Math.random() > 0.5 ? '#818cf8' : '#312e81'; // Indigo for Fragile
+                 color = Math.random() > 0.5 ? '#818cf8' : '#312e81'; 
             } else {
                  color = Math.random() > 0.5 ? '#dc2626' : '#262626';
             }
@@ -365,16 +287,12 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             decay
         });
     }
-
     setParticles(prev => [...prev, ...newParticles]);
   };
 
-  // Particle Animation Loop
   useEffect(() => {
     if (particles.length === 0) return;
-
     let animationFrameId: number;
-
     const updateParticles = () => {
         setParticles(prevParticles => {
             const updated = prevParticles.map(p => ({
@@ -383,17 +301,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                 y: p.y + p.vy,
                 life: p.life - p.decay,
             })).filter(p => p.life > 0);
-            
             return updated;
         });
         animationFrameId = requestAnimationFrame(updateParticles);
     };
-
     animationFrameId = requestAnimationFrame(updateParticles);
     return () => cancelAnimationFrame(animationFrameId);
   }, [particles.length]); 
   
-  // Ambient Background Particles
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -403,7 +318,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
-
     const bgParticles: {x: number, y: number, speed: number, size: number, alpha: number}[] = [];
     const particleCount = 60;
 
@@ -421,34 +335,28 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const animate = () => {
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = '#fff';
-        
         bgParticles.forEach(p => {
             p.y -= p.speed;
             if (p.y < 0) p.y = height;
-            
             ctx.globalAlpha = p.alpha;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
         });
-        
         animationId = requestAnimationFrame(animate);
     };
     animate();
-
     const handleResize = () => {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
     };
     window.addEventListener('resize', handleResize);
-
     return () => {
         cancelAnimationFrame(animationId);
         window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  // Start Game / Restart Logic
   const initializeGame = useCallback(() => {
     const startLevel = 1;
     const startParams = calculateDifficulty(startLevel);
@@ -467,7 +375,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     setParticles([]);
     setSwipeFeedback(null);
     
-    // Reset input state
     isProcessingMove.current = false;
     inputBuffer.current = [];
     if (moveTimeoutRef.current) {
@@ -477,16 +384,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     
     setIsPlaying(true);
     setIsPaused(false);
+    setPauseIndex(0); // Reset pause cursor
   }, [generateLevel]);
 
-  // Initial Load
   useEffect(() => {
     initializeGame();
     return () => stopTimer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Timer
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = window.setInterval(() => {
@@ -514,7 +419,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
       stopTimer();
     }
     return () => stopTimer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, isPaused]);
 
   const handleGameOver = (reason?: { title: string, desc: string }) => {
@@ -523,13 +427,10 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     onEndGame(scoreRef.current, reason);
   };
 
-  // Movement & Progression
   const movePlayer = useCallback((dx: number, dy: number) => {
     if (!isPlaying || isPaused) return;
     
-    // Input Buffering Logic
     if (isProcessingMove.current) {
-        // Limit buffer size to prevent massive queues
         if (inputBuffer.current.length < 2) {
             inputBuffer.current.push({dx, dy});
         }
@@ -537,14 +438,10 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     }
     
     isProcessingMove.current = true;
-    
-    // Reset input lock after tile transition duration & check buffer
     moveTimeoutRef.current = window.setTimeout(() => {
         isProcessingMove.current = false;
-        // If there are moves in the buffer, execute the next one
         if (inputBuffer.current.length > 0) {
             const nextMove = inputBuffer.current.shift();
-            // Use ref to call the freshest version of movePlayer
             if (nextMove && movePlayerRef.current) {
                 movePlayerRef.current(nextMove.dx, nextMove.dy);
             }
@@ -556,14 +453,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const newRow = row + dy;
     const newCol = col + dx;
 
-    // CHECK BOUNDS
     if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
-        // LAVA MODE: Moving out of bounds is fatal (Void Fall)
         if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
-            // CLASSIC & FRAGILE MODE: Penalty
             haptics.thud();
             setTimeLeft(prev => Math.max(0, prev - 500));
         }
@@ -572,32 +466,26 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     const newIndex = newRow * gridSize + newCol;
     
-    // CHECK WALLS
     if (walls.has(newIndex)) {
         setHitWallIndex(newIndex);
         spawnParticles(newIndex, 'COLLISION');
         haptics.thud();
         
-        // LAVA MODE: Touching a wall is fatal
         if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'CRITICAL FAILURE', desc: 'INCINERATED BY FIREWALL' });
             return;
         }
         
-        // Classic & Fragile Mode: Penalize
         setTimeLeft(prev => Math.max(0, prev - 500));
-
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
         hitTimeoutRef.current = window.setTimeout(() => {
             setHitWallIndex(null);
             hitTimeoutRef.current = null;
         }, 200);
-        
         return;
     }
 
-    // CHECK FRAGILE MODE BACKTRACKING
     if (mode === GameMode.FRAGILE && visitedIndices.has(newIndex)) {
          setHitWallIndex(newIndex);
          spawnParticles(newIndex, 'COLLISION');
@@ -616,7 +504,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         setMaxTime(diffParams.timeLimit);
         setTimeLeft(diffParams.timeLimit);
 
-        // Handle Grid Resizing if difficulty tier increases
         if (diffParams.gridSize !== gridSize) {
             const currentRow = newRow;
             const currentCol = newCol;
@@ -631,27 +518,55 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
 
     } else {
-        // SUCCESSFUL MOVE
         haptics.tick();
-        
-        // FRAGILE MODE: Mark previous tile as visited (cracked)
         if (mode === GameMode.FRAGILE) {
             setVisitedIndices(prev => new Set(prev).add(playerIndex));
         }
-
         setPlayerIndex(newIndex);
     }
   }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode, visitedIndices]);
 
-  // Keep movePlayerRef in sync
   useEffect(() => {
       movePlayerRef.current = movePlayer;
   }, [movePlayer]);
 
-  // Keyboard
+  // Keyboard & Pause Logic
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-        if (!isPlaying || isPaused) return;
+        // Global Pause Toggle
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+            e.preventDefault();
+            setIsPaused(prev => {
+                if (!prev) setPauseIndex(0); // Reset selection when pausing
+                return !prev;
+            });
+            haptics.playClick();
+            return;
+        }
+
+        if (isPaused) {
+             // Pause Menu Navigation
+             if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                 e.preventDefault();
+                 setPauseIndex(prev => (prev > 0 ? prev - 1 : 2));
+                 haptics.tick();
+             } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                 e.preventDefault();
+                 setPauseIndex(prev => (prev < 2 ? prev + 1 : 0));
+                 haptics.tick();
+             } else if (e.key === 'Enter' || e.key === ' ') {
+                 e.preventDefault();
+                 haptics.playClick();
+                 if (pauseIndex === 0) setIsPaused(false);
+                 else if (pauseIndex === 1) initializeGame();
+                 else if (pauseIndex === 2) onBackToMenu();
+             }
+             return;
+        }
+
+        if (!isPlaying) return;
+
+        // Game Movement
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
 
         switch(e.key) {
@@ -664,9 +579,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [movePlayer, isPlaying, isPaused, initializeGame]);
+  }, [movePlayer, isPlaying, isPaused, initializeGame, pauseIndex, onBackToMenu]);
 
-  // Swipe Handling
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartRef.current = {
       x: e.touches[0].clientX,
@@ -676,13 +590,10 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!touchStartRef.current) return;
-
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
-    
     const diffX = touchEndX - touchStartRef.current.x;
     const diffY = touchEndY - touchStartRef.current.y;
-    
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
     
@@ -699,14 +610,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
         setSwipeFeedback({ direction: dir, id: Date.now() });
     }
-    
     touchStartRef.current = null;
   };
 
-  // Calculate Player Animation Position
   const playerRow = Math.floor(playerIndex / gridSize);
   const playerCol = playerIndex % gridSize;
-  
   const playerOverlayClass = "absolute transition-all duration-100 ease-out p-1 z-30";
 
   return (
@@ -728,7 +636,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
          }
       `}</style>
 
-      {/* Minimalist HUD */}
       <div className="flex justify-between items-end p-8 pb-2 w-full z-20">
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2 mb-1">
@@ -752,7 +659,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
       </div>
 
-      {/* Progress Line */}
       <div className="w-full px-8 mb-8 z-20">
         <div className="h-[2px] w-full bg-neutral-900">
             <div 
@@ -762,7 +668,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
       </div>
 
-      {/* Game Board */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
         <div 
             className="grid relative transition-all duration-500"
@@ -773,8 +678,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
               gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`
             }}
         >
-          
-          {/* Static Grid (Background, Target, Walls) */}
           {Array.from({ length: gridSize * gridSize }).map((_, index) => {
             let type = TileType.EMPTY;
             if (index === playerIndex) type = TileType.EMPTY; 
@@ -791,8 +694,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             const isAdjacent = Math.abs(pRow - tRow) + Math.abs(pCol - tCol) === 1;
             
             const isDanger = (mode === GameMode.LAVA && walls.has(index) && isAdjacent);
-            
-            // Stagger animation based on grid position
             const staggerDelay = (tRow + tCol) * 20;
 
             return (
@@ -808,7 +709,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             );
           })}
 
-          {/* Animated Player Overlay */}
           <div 
              className={playerOverlayClass}
              style={{
@@ -821,7 +721,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
               <Tile type={TileType.PLAYER} />
           </div>
 
-          {/* Particles Overlay */}
           {particles.map(p => (
             <div
                 key={p.id}
@@ -839,7 +738,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
           ))}
         </div>
         
-        {/* Swipe Feedback Overlay */}
         {swipeFeedback && (
              <div 
                 key={swipeFeedback.id}
@@ -856,7 +754,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         )}
       </div>
 
-      {/* Minimal Bottom Controls */}
       <div className="p-8 pb-10 flex flex-col items-center gap-6 mt-auto w-full z-20">
         <div className="flex gap-8 items-center">
             <button 
@@ -877,7 +774,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         </div>
       </div>
 
-      {/* Paused Overlay */}
       {isPaused && (
         <div className="absolute inset-0 bg-[#050505] z-50 flex flex-col items-center justify-center p-8 animate-in fade-in duration-200">
             
@@ -912,15 +808,26 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
                     variant="primary" 
                     size="lg" 
                     fullWidth 
+                    isSelected={pauseIndex === 0}
                     onClick={() => setIsPaused(false)}
                 >
-                    RESUME
+                    RESUME (ENTER)
                 </Button>
                 <div className="grid grid-cols-2 gap-4">
-                    <Button variant="secondary" fullWidth onClick={initializeGame}>
+                    <Button 
+                        variant="secondary" 
+                        fullWidth 
+                        isSelected={pauseIndex === 1}
+                        onClick={initializeGame}
+                    >
                         RETRY
                     </Button>
-                    <Button variant="danger" fullWidth onClick={onBackToMenu}>
+                    <Button 
+                        variant="danger" 
+                        fullWidth 
+                        isSelected={pauseIndex === 2}
+                        onClick={onBackToMenu}
+                    >
                         ABORT
                     </Button>
                 </div>

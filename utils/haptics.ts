@@ -6,6 +6,12 @@ export const haptics = {
       navigator.vibrate(8);
     }
   },
+  // Standard UI interaction click
+  playClick: () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(15);
+    }
+  },
   // Solid thud for impacts/walls
   thud: () => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {

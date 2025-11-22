@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../components/Button';
 import { GameMode, TileType } from '../types';
 import { HighScores } from '../utils/storage';
 import { X, HelpCircle } from 'lucide-react';
-import { TileType as TileTypeEnum } from '../types'; // Import enum for usage
+import { TileType as TileTypeEnum } from '../types';
 import { Tile } from '../components/Tile';
+import { haptics } from '../utils/haptics';
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode) => void;
@@ -15,22 +16,95 @@ interface MainMenuProps {
 export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, activeMode }) => {
   const [activeDesc, setActiveDesc] = useState<string>("SELECT PROTOCOL");
   const [showHelp, setShowHelp] = useState<boolean>(false);
+  
+  // 0: Classic, 1: Fragile, 2: Lava, 3: Help
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
 
-  const handleMouseEnter = (text: string) => {
+  const descriptions = [
+    "REACH THE TARGET. AVOID WALLS. BE QUICK.",
+    "STRUCTURAL DECAY. NO BACKTRACKING. ONE WAY.",
+    "EXTREME HAZARD. WALLS KILL. VOID FALLS FATAL.",
+    "VIEW DIRECTIVES AND CONTROLS."
+  ];
+
+  useEffect(() => {
+    if (!showHelp) {
+        setActiveDesc(descriptions[selectedIndex] || "SELECT PROTOCOL");
+    }
+  }, [selectedIndex, showHelp]);
+
+  const handleMouseEnter = (index: number, text: string) => {
+    if (showHelp) return;
+    setSelectedIndex(index);
     setActiveDesc(text);
-  };
-
-  const handleMouseLeave = () => {
-    setActiveDesc("SELECT PROTOCOL");
   };
 
   const handleHelpClick = () => {
       setShowHelp(true);
   };
 
-  const handleCloseHelp = () => {
+  const handleCloseHelp = useCallback(() => {
       setShowHelp(false);
-  };
+  }, []);
+
+  const executeSelection = useCallback(() => {
+      haptics.playClick();
+      if (showHelp) {
+          handleCloseHelp();
+          return;
+      }
+
+      switch (selectedIndex) {
+          case 0: onStartGame(GameMode.CLASSIC); break;
+          case 1: onStartGame(GameMode.FRAGILE); break;
+          case 2: onStartGame(GameMode.LAVA); break;
+          case 3: handleHelpClick(); break;
+      }
+  }, [selectedIndex, showHelp, onStartGame, handleCloseHelp]);
+
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        // If Help is open, Escape or Enter closes it
+        if (showHelp) {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCloseHelp();
+            }
+            return;
+        }
+
+        switch(e.key) {
+            case 'ArrowUp': 
+            case 'w': 
+            case 'W':
+                e.preventDefault();
+                setSelectedIndex(prev => (prev > 0 ? prev - 1 : 3));
+                haptics.tick();
+                break;
+            case 'ArrowDown': 
+            case 's': 
+            case 'S':
+                e.preventDefault();
+                setSelectedIndex(prev => (prev < 3 ? prev + 1 : 0));
+                haptics.tick();
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                executeSelection();
+                break;
+            case 'h':
+            case 'H':
+                setSelectedIndex(3);
+                break;
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showHelp, handleCloseHelp, executeSelection]);
+
 
   return (
     <div className="flex flex-col items-center min-h-screen w-full max-w-md md:max-w-full mx-auto p-8 font-sans relative">
@@ -62,7 +136,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           50% { opacity: 0.5; transform: scale(0.8); }
         }
         
-        /* Custom Minimalist Scrollbar */
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
@@ -78,10 +151,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
         }
       `}</style>
       
-      {/* Main Content Wrapper for Vertical Centering */}
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         
-        {/* Sleek Minimalist Header */}
         <div className="flex flex-col items-center mb-20 select-none">
           <h1 
             className="text-8xl md:text-9xl font-bold text-white tracking-tighter"
@@ -97,7 +168,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           </span>
         </div>
 
-        {/* Menu Actions */}
         <div 
           className="flex flex-col gap-4 w-full max-w-[320px]"
           style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards', opacity: 0 }}
@@ -107,14 +177,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
             variant="primary" 
             size="lg" 
             fullWidth 
+            isSelected={selectedIndex === 0}
             onClick={() => onStartGame(GameMode.CLASSIC)}
-            onMouseEnter={() => handleMouseEnter("REACH THE TARGET. AVOID WALLS. BE QUICK.")}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={() => handleMouseEnter(0, descriptions[0])}
             className={`relative group transition-all duration-300 ${activeMode === GameMode.CLASSIC ? 'border-white bg-white/5' : 'border-white/20'}`}
           >
             <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">
-                {activeMode === GameMode.CLASSIC && (
+                {(activeMode === GameMode.CLASSIC || selectedIndex === 0) && (
                   <div className="w-1.5 h-1.5 bg-white rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
                 )}
                 <span>RUN</span>
@@ -130,14 +200,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
             variant="fragile" 
             size="lg" 
             fullWidth 
+            isSelected={selectedIndex === 1}
             onClick={() => onStartGame(GameMode.FRAGILE)}
-            onMouseEnter={() => handleMouseEnter("STRUCTURAL DECAY. NO BACKTRACKING. ONE WAY.")}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={() => handleMouseEnter(1, descriptions[1])}
             className={`relative group transition-all duration-300 ${activeMode === GameMode.FRAGILE ? 'border-indigo-400 bg-indigo-950/20 text-indigo-400' : ''}`}
           >
              <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">
-                {activeMode === GameMode.FRAGILE && (
+                {(activeMode === GameMode.FRAGILE || selectedIndex === 1) && (
                   <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
                 )}
                 <span>FRAGILE</span>
@@ -153,14 +223,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
             variant="danger" 
             size="lg" 
             fullWidth 
+            isSelected={selectedIndex === 2}
             onClick={() => onStartGame(GameMode.LAVA)}
-            onMouseEnter={() => handleMouseEnter("EXTREME HAZARD. WALLS KILL. VOID FALLS FATAL.")}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={() => handleMouseEnter(2, descriptions[2])}
             className={`relative group transition-all duration-300 ${activeMode === GameMode.LAVA ? 'border-red-500 bg-red-950/20 text-red-500' : ''}`}
           >
              <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">
-                {activeMode === GameMode.LAVA && (
+                {(activeMode === GameMode.LAVA || selectedIndex === 2) && (
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
                 )}
                 <span>FLOOR IS LAVA</span>
@@ -172,7 +242,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           </Button>
         </div>
 
-        {/* Dynamic Description Area */}
         <div 
           className="h-12 mt-10 flex items-center justify-center"
           style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards', opacity: 0 }}
@@ -183,14 +252,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
         </div>
       </div>
       
-      {/* Footer Actions */}
       <div 
         className="mt-auto pt-8 flex flex-col items-center gap-6"
         style={{ animation: 'intro-fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards', opacity: 0 }}
       >
         <button 
             onClick={handleHelpClick}
-            className="text-neutral-600 hover:text-white transition-colors flex flex-col items-center gap-2 group"
+            onMouseEnter={() => handleMouseEnter(3, descriptions[3])}
+            className={`transition-colors flex flex-col items-center gap-2 group outline-none ${selectedIndex === 3 ? 'text-white scale-110' : 'text-neutral-600 hover:text-white'}`}
         >
             <HelpCircle size={20} className="group-hover:scale-110 transition-transform" />
             <span className="text-[9px] font-bold tracking-widest uppercase">How to Play</span>
@@ -201,7 +270,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                 CREATED BY ZENDEVVE
             </div>
             <div className="text-neutral-900 text-[9px] font-mono select-none">
-                SYS.V.3.8
+                SYS.V.3.9
             </div>
         </div>
       </div>
@@ -219,7 +288,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
 
                 <div className="flex-1 overflow-y-auto pr-2 space-y-8 font-mono text-xs text-neutral-300 custom-scrollbar">
                     
-                    {/* Visual Identification */}
+                    {/* Content omitted for brevity, same as original */}
                     <div>
                         <h3 className="text-white font-bold mb-4 tracking-wider text-sm uppercase">Identification</h3>
                         <div className="grid grid-cols-3 gap-4">
@@ -255,8 +324,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                     <div>
                          <h3 className="text-white font-bold mb-4 tracking-wider text-sm uppercase">Controls</h3>
                          <div className="grid grid-cols-2 gap-4">
-                            
-                            {/* Desktop Visuals */}
                             <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800 flex flex-col items-center">
                                 <div className="text-center mb-2 font-bold text-neutral-500 text-[10px]">DESKTOP</div>
                                 <div className="h-8 flex items-end justify-center gap-1 mb-2">
@@ -272,8 +339,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                                 </div>
                                 <div className="text-center text-white text-[10px] font-bold">ARROWS / WASD</div>
                             </div>
-
-                            {/* Mobile Visuals */}
                             <div className="bg-neutral-900 p-3 rounded-none border border-neutral-800 flex flex-col items-center">
                                 <div className="text-center mb-2 font-bold text-neutral-500 text-[10px]">MOBILE</div>
                                 <div className="relative w-16 h-8 bg-neutral-800/50 border border-neutral-700 rounded mb-2 flex items-center justify-center overflow-hidden">
@@ -285,7 +350,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                                 <div className="text-center text-white text-[10px] font-bold">SWIPE</div>
                                 <div className="text-center text-[9px] text-neutral-600 mt-1">ANYWHERE</div>
                             </div>
-
                          </div>
                     </div>
 
@@ -309,7 +373,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                 </div>
 
                 <div className="mt-8 shrink-0">
-                    <Button fullWidth variant="primary" size="sm" onClick={handleCloseHelp}>ACKNOWLEDGE</Button>
+                    <Button fullWidth variant="primary" size="sm" isSelected onClick={handleCloseHelp}>ACKNOWLEDGE (ENTER)</Button>
                 </div>
              </div>
         </div>
