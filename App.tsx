@@ -130,7 +130,7 @@ const App: React.FC = () => {
                     Reinitialize
                 </Button>
                 <Button 
-                    variant="secondary" 
+                    variant="danger" 
                     size="lg" 
                     fullWidth 
                     onClick={handleBackToMenu}
