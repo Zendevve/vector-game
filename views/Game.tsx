@@ -326,31 +326,23 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const startX = (col * tilePercent) + (tilePercent / 2);
     const startY = (row * tilePercent) + (tilePercent / 2);
 
-    let count = 12; 
-    if (type === 'SUCCESS') count = 20;
+    let count = 8;
+    if (type === 'SUCCESS') count = 12;
 
     const newParticles: Particle[] = [];
 
     for (let i = 0; i < count; i++) {
-        // Random angle with slight jitter
-        const angle = (Math.PI * 2 * i) / count + (Math.random() * 0.2 - 0.1);
+        const angle = (Math.PI * 2 * i) / count;
+        let speed = Math.random() * 0.5 + 0.2; // Random speed
         
-        let speed: number;
-        let decay: number;
-        let size: number;
-        let color: string;
+        let decay = 0.04;
+        let size = Math.random() * 4 + 2;
+        let color = '#ffffff';
 
         if (type === 'SUCCESS') {
-            speed = Math.random() * 0.6 + 0.4; // Faster, explosive
-            decay = Math.random() * 0.02 + 0.015; // Lasts longer: 0.015 - 0.035
-            size = Math.random() * 4 + 2; // 2px - 6px
-            color = Math.random() > 0.3 ? '#06b6d4' : '#ffffff'; // Cyan & White
-        } else {
-            // COLLISION
-            speed = Math.random() * 0.4 + 0.1; // Heavy thud
-            decay = Math.random() * 0.03 + 0.03; // Fades fast: 0.03 - 0.06
-            size = Math.random() * 3 + 2; // 2px - 5px
-            color = Math.random() > 0.5 ? '#dc2626' : '#525252'; // Red & Grey
+            color = Math.random() > 0.5 ? '#06b6d4' : '#ffffff';
+        } else if (type === 'COLLISION') {
+            color = Math.random() > 0.5 ? '#dc2626' : '#262626';
         }
         
         newParticles.push({
@@ -473,10 +465,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     if (moveTimeoutRef.current) {
         clearTimeout(moveTimeoutRef.current);
         moveTimeoutRef.current = null;
-    }
-    if (hitTimeoutRef.current) {
-        clearTimeout(hitTimeoutRef.current);
-        hitTimeoutRef.current = null;
     }
     
     setIsPlaying(true);
@@ -635,26 +623,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   useEffect(() => {
       movePlayerRef.current = movePlayer;
   }, [movePlayer]);
-
-  // Clear input buffer and timeouts when game state changes (Pause or Stop)
-  useEffect(() => {
-    if (isPaused || !isPlaying) {
-        inputBuffer.current = [];
-        isProcessingMove.current = false;
-        if (moveTimeoutRef.current) {
-            clearTimeout(moveTimeoutRef.current);
-            moveTimeoutRef.current = null;
-        }
-    }
-  }, [isPaused, isPlaying]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-      return () => {
-          if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
-          if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
-      };
-  }, []);
 
   // Keyboard
   useEffect(() => {
