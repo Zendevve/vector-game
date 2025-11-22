@@ -558,12 +558,12 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
     // CHECK BOUNDS
     if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
-        // LAVA & FRAGILE MODE: Moving out of bounds is fatal (Void Fall)
-        if (mode === GameMode.LAVA || mode === GameMode.FRAGILE) {
+        // LAVA MODE: Moving out of bounds is fatal (Void Fall)
+        if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
-            // CLASSIC MODE: Penalty
+            // CLASSIC & FRAGILE MODE: Penalty
             haptics.thud();
             setTimeLeft(prev => Math.max(0, prev - 500));
         }
@@ -578,20 +578,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         spawnParticles(newIndex, 'COLLISION');
         haptics.thud();
         
-        // LAVA & FRAGILE MODE: Touching a wall is fatal
+        // LAVA MODE: Touching a wall is fatal
         if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'CRITICAL FAILURE', desc: 'INCINERATED BY FIREWALL' });
             return;
         }
         
-        if (mode === GameMode.FRAGILE) {
-             haptics.failure();
-             handleGameOver({ title: 'CRITICAL FAILURE', desc: 'IMPACT DESTABILIZED CORE' });
-             return;
-        }
-
-        // Classic Mode: Penalize
+        // Classic & Fragile Mode: Penalize
         setTimeLeft(prev => Math.max(0, prev - 500));
 
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
