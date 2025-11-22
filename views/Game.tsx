@@ -546,15 +546,22 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
         if (isPaused) {
              // Pause Menu Navigation
-             if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+             // Vertical Navigation (Resume <-> Retry/Abort)
+             if (['ArrowUp', 'w', 'W', 'ArrowDown', 's', 'S'].includes(e.key)) {
                  e.preventDefault();
-                 setPauseIndex(prev => (prev > 0 ? prev - 1 : 2));
+                 setPauseIndex(prev => (prev === 0 ? 1 : 0));
                  haptics.tick();
-             } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+             } 
+             // Horizontal Navigation (Retry <-> Abort)
+             else if (['ArrowLeft', 'a', 'A', 'ArrowRight', 'd', 'D'].includes(e.key)) {
                  e.preventDefault();
-                 setPauseIndex(prev => (prev < 2 ? prev + 1 : 0));
-                 haptics.tick();
-             } else if (e.key === 'Enter' || e.key === ' ') {
+                 if (pauseIndex === 1 || pauseIndex === 2) {
+                     setPauseIndex(prev => (prev === 1 ? 2 : 1));
+                     haptics.tick();
+                 }
+             } 
+             // Selection
+             else if (e.key === 'Enter' || e.key === ' ') {
                  e.preventDefault();
                  haptics.playClick();
                  if (pauseIndex === 0) setIsPaused(false);

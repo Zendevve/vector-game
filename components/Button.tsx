@@ -31,11 +31,11 @@ export const Button: React.FC<ButtonProps> = ({
   // Selected (Keyboard Focus) overrides
   // These apply the "hover" state permanently when selected via keyboard
   const selectedVariants = {
-    primary: "border-white bg-white/5 scale-[1.02]",
-    secondary: "text-white border-neutral-600 bg-white/5 scale-[1.02]",
-    danger: "text-red-500 border-red-500 bg-red-950/10 scale-[1.02]",
-    ghost: "text-white bg-white/5 scale-[1.02]",
-    fragile: "text-indigo-300 border-indigo-400 bg-indigo-950/20 scale-[1.02]",
+    primary: "border-white bg-white/5",
+    secondary: "text-white border-neutral-600 bg-white/5",
+    danger: "text-red-500 border-red-500 bg-red-950/10",
+    ghost: "text-white bg-white/5",
+    fragile: "text-indigo-300 border-indigo-400 bg-indigo-950/20",
   };
 
   const sizes = {

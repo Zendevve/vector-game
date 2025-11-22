@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../components/Button';
 import { GameMode, TileType } from '../types';
@@ -184,9 +185,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           >
             <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">
-                {(activeMode === GameMode.CLASSIC || selectedIndex === 0) && (
-                  <div className="w-1.5 h-1.5 bg-white rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
-                )}
+                <div 
+                  className={`w-1.5 h-1.5 bg-white rounded-full transition-opacity duration-300 ${
+                    (activeMode === GameMode.CLASSIC || selectedIndex === 0) ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{ animation: (activeMode === GameMode.CLASSIC || selectedIndex === 0) ? 'pulse-indicator 2s infinite' : 'none' }} 
+                />
                 <span>RUN</span>
               </div>
               <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.CLASSIC ? 'text-white' : 'text-neutral-500 group-hover:text-white'}`}>
@@ -207,9 +211,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           >
              <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">
-                {(activeMode === GameMode.FRAGILE || selectedIndex === 1) && (
-                  <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
-                )}
+                <div 
+                  className={`w-1.5 h-1.5 bg-indigo-400 rounded-full transition-opacity duration-300 ${
+                    (activeMode === GameMode.FRAGILE || selectedIndex === 1) ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{ animation: (activeMode === GameMode.FRAGILE || selectedIndex === 1) ? 'pulse-indicator 2s infinite' : 'none' }} 
+                />
                 <span>FRAGILE</span>
               </div>
               <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.FRAGILE ? 'text-indigo-300' : 'text-indigo-900 group-hover:text-indigo-300'}`}>
@@ -230,9 +237,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
           >
              <div className="flex items-center justify-between w-full px-2">
               <div className="flex items-center gap-3">
-                {(activeMode === GameMode.LAVA || selectedIndex === 2) && (
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full" style={{ animation: 'pulse-indicator 2s infinite' }} />
-                )}
+                <div 
+                  className={`w-1.5 h-1.5 bg-red-500 rounded-full transition-opacity duration-300 ${
+                    (activeMode === GameMode.LAVA || selectedIndex === 2) ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{ animation: (activeMode === GameMode.LAVA || selectedIndex === 2) ? 'pulse-indicator 2s infinite' : 'none' }} 
+                />
                 <span>FLOOR IS LAVA</span>
               </div>
               <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.LAVA ? 'text-red-400' : 'text-red-900 group-hover:text-red-400'}`}>
