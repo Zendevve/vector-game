@@ -610,10 +610,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // Empty as we handle swipe on end
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (!touchStartRef.current || !isPlaying || isPaused) return;
 
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
+    const currentX = e.changedTouches[0].clientX;
+    const currentY = e.changedTouches[0].clientY;
     
     const diffX = currentX - touchStartRef.current.x;
     const diffY = currentY - touchStartRef.current.y;
@@ -621,29 +625,20 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
     
-    // Lower threshold for faster reaction (25px)
-    const SWIPE_THRESHOLD = 25;
+    const SWIPE_THRESHOLD = 30;
 
     if (Math.max(absX, absY) > SWIPE_THRESHOLD) {
         if (absX > absY) {
-            // Horizontal dominant
             const dir = diffX > 0 ? 1 : -1;
             movePlayer(dir, 0);
             setSwipeFeedback({ direction: diffX > 0 ? 'RIGHT' : 'LEFT', id: Date.now() });
         } else {
-            // Vertical dominant
             const dir = diffY > 0 ? 1 : -1;
             movePlayer(0, dir);
             setSwipeFeedback({ direction: diffY > 0 ? 'DOWN' : 'UP', id: Date.now() });
         }
-        
-        // Reset anchor to current position to enable continuous swiping
-        // This allows the user to swipe Right then Up in one motion without lifting finger
-        touchStartRef.current = { x: currentX, y: currentY };
     }
-  };
-
-  const handleTouchEnd = () => {
+    
     touchStartRef.current = null;
   };
 
