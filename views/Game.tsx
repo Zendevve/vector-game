@@ -547,6 +547,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   // Keyboard & Pause Logic
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.repeat) return; // Block key hold repeats
+
         // Global Pause Toggle
         if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
             e.preventDefault();

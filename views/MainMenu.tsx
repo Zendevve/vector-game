@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../components/Button';
 import { GameMode, TileType } from '../types';
@@ -66,6 +65,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
   // Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.repeat) return;
+
         // If Help is open, Escape or Enter closes it
         if (showHelp) {
             if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {

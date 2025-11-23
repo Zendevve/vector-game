@@ -50,6 +50,8 @@ const App: React.FC = () => {
     if (viewState !== ViewState.GAME_OVER) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.repeat) return;
+
         switch(e.key) {
             case 'ArrowUp': 
             case 'w': 
