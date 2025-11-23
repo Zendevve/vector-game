@@ -459,7 +459,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
             haptics.thud();
-            setTimeLeft(prev => Math.max(0, prev - 500));
+            if (mode === GameMode.FRAGILE) {
+                 // Stun penalty in Fragile Mode
+                 isProcessingMove.current = true; 
+                 setTimeout(() => { isProcessingMove.current = false; }, 400);
+            } else {
+                 // Time penalty in Classic
+                 setTimeLeft(prev => Math.max(0, prev - 500));
+            }
         }
         return; 
     }
@@ -477,7 +484,14 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             return;
         }
         
-        setTimeLeft(prev => Math.max(0, prev - 500));
+        if (mode === GameMode.FRAGILE) {
+             // Stun penalty
+             isProcessingMove.current = true;
+             setTimeout(() => { isProcessingMove.current = false; }, 400);
+        } else {
+             setTimeLeft(prev => Math.max(0, prev - 500));
+        }
+
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
         hitTimeoutRef.current = window.setTimeout(() => {
             setHitWallIndex(null);
@@ -595,28 +609,41 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     };
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const diffX = touchEndX - touchStartRef.current.x;
-    const diffY = touchEndY - touchStartRef.current.y;
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || !isPlaying || isPaused) return;
+
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    
+    const diffX = currentX - touchStartRef.current.x;
+    const diffY = currentY - touchStartRef.current.y;
+    
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
     
-    if (Math.max(absX, absY) > 30) {
-        let dir: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+    // Lower threshold for faster reaction (25px)
+    const SWIPE_THRESHOLD = 25;
+
+    if (Math.max(absX, absY) > SWIPE_THRESHOLD) {
         if (absX > absY) {
-            const xDir = diffX > 0 ? 1 : -1;
-            movePlayer(xDir, 0);
-            dir = xDir > 0 ? 'RIGHT' : 'LEFT';
+            // Horizontal dominant
+            const dir = diffX > 0 ? 1 : -1;
+            movePlayer(dir, 0);
+            setSwipeFeedback({ direction: diffX > 0 ? 'RIGHT' : 'LEFT', id: Date.now() });
         } else {
-            const yDir = diffY > 0 ? 1 : -1;
-            movePlayer(0, yDir);
-            dir = yDir > 0 ? 'DOWN' : 'UP';
+            // Vertical dominant
+            const dir = diffY > 0 ? 1 : -1;
+            movePlayer(0, dir);
+            setSwipeFeedback({ direction: diffY > 0 ? 'DOWN' : 'UP', id: Date.now() });
         }
-        setSwipeFeedback({ direction: dir, id: Date.now() });
+        
+        // Reset anchor to current position to enable continuous swiping
+        // This allows the user to swipe Right then Up in one motion without lifting finger
+        touchStartRef.current = { x: currentX, y: currentY };
     }
+  };
+
+  const handleTouchEnd = () => {
     touchStartRef.current = null;
   };
 
@@ -628,6 +655,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     <div 
         className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#050505] relative overflow-hidden font-sans touch-none"
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
     >
       <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none opacity-50" />
