@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
 import { TileType, GameMode } from '../types';
-import { Pause, Play, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Pause, Play, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { haptics } from '../utils/haptics';
 
 interface GameProps {
@@ -13,7 +13,6 @@ interface GameProps {
 }
 
 const TIME_DECREMENT_INTERVAL = 10;
-const BASE_POINTS = 100;
 
 interface Particle {
   id: number;
@@ -80,13 +79,8 @@ const calculateDifficulty = (level: number) => {
 };
 
 export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highScore }) => {
-  const [score, setScore] = useState<number>(0); 
-  const scoreRef = useRef<number>(0);
-  
   const [level, setLevel] = useState<number>(1);
   const levelRef = useRef<number>(1);
-
-  const [multiplier, setMultiplier] = useState<number>(1);
   
   const [gridSize, setGridSize] = useState<number>(3);
   const [timeLeft, setTimeLeft] = useState<number>(5000);
@@ -116,9 +110,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const moveTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    scoreRef.current = score;
     levelRef.current = level;
-  }, [score, level]);
+  }, [level]);
 
   const isSolvable = (size: number, start: number, end: number, currentWalls: Set<number>) => {
     const queue = [start];
@@ -368,14 +361,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const startLevel = 1;
     const startParams = calculateDifficulty(startLevel);
     
-    setScore(0);
-    scoreRef.current = 0;
-    
     setLevel(startLevel);
     levelRef.current = startLevel;
     
-    setMultiplier(1);
-
     setGridSize(startParams.gridSize);
     setTimeLeft(startParams.timeLimit);
     setMaxTime(startParams.timeLimit);
@@ -436,7 +424,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const handleGameOver = (reason?: { title: string, desc: string }) => {
     stopTimer();
     setIsPlaying(false);
-    onEndGame(scoreRef.current, levelRef.current, reason);
+    onEndGame(0, levelRef.current, reason);
   };
 
   const movePlayer = useCallback((dx: number, dy: number) => {
@@ -466,21 +454,13 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const newCol = col + dx;
 
     if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
-        setMultiplier(1); // Reset Combo
-        
         if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
         } else {
             haptics.thud();
-            if (mode === GameMode.FRAGILE) {
-                 // Stun penalty in Fragile Mode
-                 isProcessingMove.current = true; 
-                 setTimeout(() => { isProcessingMove.current = false; }, 400);
-            } else {
-                 // Time penalty in Classic
-                 setTimeLeft(prev => Math.max(0, prev - 500));
-            }
+            // Time penalty for both Classic and Fragile
+            setTimeLeft(prev => Math.max(0, prev - 500));
         }
         return; 
     }
@@ -488,7 +468,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const newIndex = newRow * gridSize + newCol;
     
     if (walls.has(newIndex)) {
-        setMultiplier(1); // Reset Combo
         setHitWallIndex(newIndex);
         spawnParticles(newIndex, 'COLLISION');
         haptics.thud();
@@ -499,13 +478,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
             return;
         }
         
-        if (mode === GameMode.FRAGILE) {
-             // Stun penalty
-             isProcessingMove.current = true;
-             setTimeout(() => { isProcessingMove.current = false; }, 400);
-        } else {
-             setTimeLeft(prev => Math.max(0, prev - 500));
-        }
+        // Time penalty for both Classic and Fragile
+        setTimeLeft(prev => Math.max(0, prev - 500));
 
         if (hitTimeoutRef.current) clearTimeout(hitTimeoutRef.current);
         hitTimeoutRef.current = window.setTimeout(() => {
@@ -516,7 +490,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     }
 
     if (mode === GameMode.FRAGILE && visitedIndices.has(newIndex)) {
-         setMultiplier(1); // Reset Combo
          setHitWallIndex(newIndex);
          spawnParticles(newIndex, 'COLLISION');
          haptics.failure();
@@ -527,11 +500,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     if (newIndex === targetIndex) {
         spawnParticles(newIndex, 'SUCCESS');
         haptics.success();
-        
-        // Score Calculation
-        const points = BASE_POINTS * multiplier;
-        setScore(prev => prev + points);
-        setMultiplier(prev => prev + 1);
         
         const nextLevel = level + 1;
         setLevel(nextLevel);
@@ -560,7 +528,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
         setPlayerIndex(newIndex);
     }
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode, visitedIndices, level, multiplier]);
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, mode, visitedIndices, level]);
 
   useEffect(() => {
       movePlayerRef.current = movePlayer;
@@ -688,26 +656,18 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
            0% { opacity: 0; transform: scale(0.9); }
            100% { opacity: 1; transform: scale(1); }
          }
-         @keyframes multiplier-pop {
-           0% { transform: scale(1); }
-           50% { transform: scale(1.2); color: #22d3ee; }
-           100% { transform: scale(1); }
-         }
       `}</style>
 
       <div className="flex justify-between items-end p-8 pb-2 w-full z-20">
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">SCORE</span>
+            <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">LEVEL</span>
             <span className="text-neutral-700 text-[10px] font-bold tracking-wider">
-                BEST {Math.max(score, highScore).toString()}
+                BEST {Math.max(level, highScore).toString().padStart(2, '0')}
             </span>
           </div>
           <span className="text-5xl font-black text-white tracking-tighter leading-none font-mono">
-            {score.toString()}
-          </span>
-          <span className="text-[10px] font-mono font-bold text-neutral-500 mt-1 tracking-widest">
-            GRID LVL {level.toString().padStart(2, '0')}
+            {level.toString().padStart(2, '0')}
           </span>
         </div>
 
@@ -718,13 +678,6 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
            <span className={`text-3xl font-bold tracking-tight font-mono ${timeLeft < 1000 ? 'text-red-500' : 'text-white'}`}>
             {(timeLeft / 1000).toFixed(2)}s
           </span>
-          
-          <div className={`mt-2 flex items-center gap-1 text-[10px] font-bold tracking-wider transition-colors duration-200 ${multiplier > 1 ? 'text-cyan-400 opacity-100' : 'text-neutral-800 opacity-50'}`}>
-             <Zap size={10} fill={multiplier > 1 ? "currentColor" : "none"} />
-             <span key={multiplier} style={{ animation: multiplier > 1 ? 'multiplier-pop 0.2s ease-out' : 'none' }}>
-                COMBO x{multiplier}
-             </span>
-          </div>
         </div>
       </div>
 
@@ -861,8 +814,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
             <div className="grid grid-cols-2 w-full gap-4 mb-12">
                 <div className="bg-neutral-900/50 border border-neutral-800 p-5 rounded-lg">
-                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Score</div>
-                    <div className="text-3xl font-black text-white font-mono">{score.toString()}</div>
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Level</div>
+                    <div className="text-3xl font-black text-white font-mono">{level.toString().padStart(2, '0')}</div>
                 </div>
                 <div className="bg-neutral-900/50 border border-neutral-800 p-5 rounded-lg">
                     <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Time Left</div>
