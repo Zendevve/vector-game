@@ -8,6 +8,7 @@ import { haptics } from './utils/haptics';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
+  const [lastScore, setLastScore] = useState<number>(0);
   const [lastLevel, setLastLevel] = useState<number>(0);
   const [gameOverDetails, setGameOverDetails] = useState<{title: string, desc: string}>({ title: 'Terminated', desc: 'Time limit exceeded' });
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
@@ -21,7 +22,8 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
-  const handleEndGame = (level: number, reason?: { title: string, desc: string }) => {
+  const handleEndGame = (score: number, level: number, reason?: { title: string, desc: string }) => {
+    setLastScore(score);
     setLastLevel(level);
     
     if (reason) {
@@ -30,7 +32,7 @@ const App: React.FC = () => {
         setGameOverDetails({ title: 'TERMINATED', desc: 'TIME LIMIT EXCEEDED' });
     }
 
-    const newScores = saveHighScore(activeMode, level);
+    const newScores = saveHighScore(activeMode, score);
     setHighScores(newScores);
 
     setViewState(ViewState.GAME_OVER);
@@ -148,17 +150,19 @@ const App: React.FC = () => {
                 <p className="text-neutral-400 mt-2 font-mono text-sm">{gameOverDetails.desc}</p>
             </div>
 
-            <div className="w-full mb-12">
-                <div className="bg-neutral-900/50 border border-neutral-800 p-8 rounded-lg flex flex-col items-center">
-                    <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-3">Grids Cleared</div>
-                    <div className="text-6xl font-black text-white font-mono mb-2">
+            <div className="grid grid-cols-2 w-full gap-4 mb-12">
+                <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-lg">
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Final Score</div>
+                    <div className="text-4xl font-black text-white font-mono">{lastScore.toLocaleString()}</div>
+                    {lastScore > (highScores[activeMode] || 0) && (
+                        <span className="text-xs font-bold text-cyan-400 mt-2 block animate-pulse">NEW BEST</span>
+                    )}
+                </div>
+                <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-lg flex flex-col">
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Grids Cleared</div>
+                    <div className="text-2xl font-bold text-neutral-300 font-mono mb-auto">
                         {lastLevel.toString().padStart(2, '0')}
                     </div>
-                    {lastLevel > (highScores[activeMode] || 0) && (
-                        <span className="text-xs font-bold text-cyan-400 animate-pulse tracking-widest uppercase border border-cyan-900/50 bg-cyan-950/20 px-3 py-1 rounded-full">
-                            New Personal Best
-                        </span>
-                    )}
                 </div>
             </div>
 
