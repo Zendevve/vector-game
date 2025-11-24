@@ -195,7 +195,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                 <span>RUN</span>
               </div>
               <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.CLASSIC ? 'text-white' : 'text-neutral-500 group-hover:text-white'}`}>
-                BEST {highScores[GameMode.CLASSIC] || 0}
+                BEST GRID {highScores[GameMode.CLASSIC] || 0}
               </span>
             </div>
           </Button>
@@ -221,7 +221,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                 <span>FRAGILE</span>
               </div>
               <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.FRAGILE ? 'text-indigo-300' : 'text-indigo-900 group-hover:text-indigo-300'}`}>
-                BEST {highScores[GameMode.FRAGILE] || 0}
+                BEST GRID {highScores[GameMode.FRAGILE] || 0}
               </span>
             </div>
           </Button>
@@ -247,7 +247,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
                 <span>FLOOR IS LAVA</span>
               </div>
               <span className={`text-[10px] font-mono font-normal transition-colors ${activeMode === GameMode.LAVA ? 'text-red-400' : 'text-red-900 group-hover:text-red-400'}`}>
-                BEST {highScores[GameMode.LAVA] || 0}
+                BEST GRID {highScores[GameMode.LAVA] || 0}
               </span>
             </div>
           </Button>

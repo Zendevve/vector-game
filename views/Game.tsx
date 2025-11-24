@@ -7,7 +7,7 @@ import { haptics } from '../utils/haptics';
 
 interface GameProps {
   mode: GameMode;
-  onEndGame: (score: number, reason?: {title: string, desc: string}) => void;
+  onEndGame: (level: number, reason?: {title: string, desc: string}) => void;
   onBackToMenu: () => void;
   highScore: number;
 }
@@ -79,9 +79,9 @@ const calculateDifficulty = (level: number) => {
 };
 
 export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highScore }) => {
-  const [score, setScore] = useState<number>(1); 
-  const scoreRef = useRef<number>(1); 
-  
+  const [level, setLevel] = useState<number>(1);
+  const levelRef = useRef<number>(1);
+
   const [gridSize, setGridSize] = useState<number>(3);
   const [timeLeft, setTimeLeft] = useState<number>(5000);
   const [maxTime, setMaxTime] = useState<number>(5000);
@@ -110,8 +110,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const moveTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    scoreRef.current = score;
-  }, [score]);
+    levelRef.current = level;
+  }, [level]);
 
   const isSolvable = (size: number, start: number, end: number, currentWalls: Set<number>) => {
     const queue = [start];
@@ -361,9 +361,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const startLevel = 1;
     const startParams = calculateDifficulty(startLevel);
     
-    setScore(startLevel);
-    scoreRef.current = startLevel; 
-
+    setLevel(startLevel);
+    levelRef.current = startLevel;
+    
     setGridSize(startParams.gridSize);
     setTimeLeft(startParams.timeLimit);
     setMaxTime(startParams.timeLimit);
@@ -424,7 +424,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const handleGameOver = (reason?: { title: string, desc: string }) => {
     stopTimer();
     setIsPlaying(false);
-    onEndGame(scoreRef.current, reason);
+    onEndGame(levelRef.current, reason);
   };
 
   const movePlayer = useCallback((dx: number, dy: number) => {
@@ -454,6 +454,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     const newCol = col + dx;
 
     if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
+        
         if (mode === GameMode.LAVA) {
             haptics.failure();
             handleGameOver({ title: 'SIGNAL LOST', desc: 'UNIT FELL INTO VOID' });
@@ -511,8 +512,9 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
     if (newIndex === targetIndex) {
         spawnParticles(newIndex, 'SUCCESS');
         haptics.success();
-        const nextLevel = score + 1;
-        setScore(nextLevel);
+        
+        const nextLevel = level + 1;
+        setLevel(nextLevel);
         
         const diffParams = calculateDifficulty(nextLevel);
         setMaxTime(diffParams.timeLimit);
@@ -538,7 +540,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
         }
         setPlayerIndex(newIndex);
     }
-  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, score, mode, visitedIndices]);
+  }, [gridSize, isPlaying, isPaused, targetIndex, walls, generateLevel, playerIndex, mode, visitedIndices, level]);
 
   useEffect(() => {
       movePlayerRef.current = movePlayer;
@@ -673,11 +675,11 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-neutral-600 text-[10px] font-bold tracking-[0.2em]">GRID</span>
             <span className="text-neutral-700 text-[10px] font-bold tracking-wider">
-                BEST {Math.max(score, highScore).toString().padStart(2, '0')}
+                BEST {Math.max(level, highScore).toString().padStart(2, '0')}
             </span>
           </div>
           <span className="text-5xl font-black text-white tracking-tighter leading-none font-mono">
-            {score.toString().padStart(2, '0')}
+            {level.toString().padStart(2, '0')}
           </span>
         </div>
 
@@ -824,8 +826,8 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
 
             <div className="grid grid-cols-2 w-full gap-4 mb-12">
                 <div className="bg-neutral-900/50 border border-neutral-800 p-5 rounded-lg">
-                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Grid Level</div>
-                    <div className="text-3xl font-black text-white font-mono">{score.toString().padStart(2, '0')}</div>
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Current Grid</div>
+                    <div className="text-3xl font-black text-white font-mono">{level.toString().padStart(2, '0')}</div>
                 </div>
                 <div className="bg-neutral-900/50 border border-neutral-800 p-5 rounded-lg">
                     <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Time Left</div>
