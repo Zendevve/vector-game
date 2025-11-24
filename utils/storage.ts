@@ -32,13 +32,13 @@ export const getHighScores = (): HighScores => {
   return DEFAULT_SCORES;
 };
 
-export const saveHighScore = (mode: GameMode, score: number): HighScores => {
+export const saveHighScore = (mode: GameMode, level: number): HighScores => {
   const currentScores = getHighScores();
 
   // Optimistic Local Update
   let newScores = { ...currentScores };
-  if (score > (currentScores[mode] || 0)) {
-    newScores = { ...currentScores, [mode]: score };
+  if (level > (currentScores[mode] || 0)) {
+    newScores = { ...currentScores, [mode]: level };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newScores));
     } catch (e) {

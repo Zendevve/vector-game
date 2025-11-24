@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MainMenu } from './views/MainMenu';
 import { Game } from './views/Game';
@@ -8,7 +9,6 @@ import { haptics } from './utils/haptics';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.MENU);
-  const [lastScore, setLastScore] = useState<number>(0);
   const [lastLevel, setLastLevel] = useState<number>(0);
   const [gameOverDetails, setGameOverDetails] = useState<{title: string, desc: string}>({ title: 'Terminated', desc: 'Time limit exceeded' });
   const [highScores, setHighScores] = useState<HighScores>(getHighScores());
@@ -22,8 +22,7 @@ const App: React.FC = () => {
     setViewState(ViewState.GAME);
   };
 
-  const handleEndGame = (score: number, level: number, reason?: { title: string, desc: string }) => {
-    setLastScore(score);
+  const handleEndGame = (level: number, reason?: { title: string, desc: string }) => {
     setLastLevel(level);
     
     if (reason) {
@@ -32,7 +31,7 @@ const App: React.FC = () => {
         setGameOverDetails({ title: 'TERMINATED', desc: 'TIME LIMIT EXCEEDED' });
     }
 
-    const newScores = saveHighScore(activeMode, score);
+    const newScores = saveHighScore(activeMode, level);
     setHighScores(newScores);
 
     setViewState(ViewState.GAME_OVER);
@@ -150,19 +149,16 @@ const App: React.FC = () => {
                 <p className="text-neutral-400 mt-2 font-mono text-sm">{gameOverDetails.desc}</p>
             </div>
 
-            <div className="grid grid-cols-2 w-full gap-4 mb-12">
-                <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-lg">
-                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Final Score</div>
-                    <div className="text-4xl font-black text-white font-mono">{lastScore.toLocaleString()}</div>
-                    {lastScore > (highScores[activeMode] || 0) && (
-                        <span className="text-xs font-bold text-cyan-400 mt-2 block animate-pulse">NEW BEST</span>
-                    )}
-                </div>
-                <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-lg flex flex-col">
-                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2">Grids Cleared</div>
-                    <div className="text-2xl font-bold text-neutral-300 font-mono mb-auto">
+            <div className="w-full mb-12">
+                <div className="bg-neutral-900/50 border border-neutral-800 p-8 rounded-lg flex flex-col items-center justify-center relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.2em] mb-4">Grid Reached</div>
+                    <div className="text-7xl font-black text-white font-mono tracking-tighter">
                         {lastLevel.toString().padStart(2, '0')}
                     </div>
+                    {lastLevel > (highScores[activeMode] || 0) && (
+                        <span className="absolute bottom-4 text-xs font-bold text-cyan-400 animate-pulse tracking-widest">NEW BEST RECORD</span>
+                    )}
                 </div>
             </div>
 

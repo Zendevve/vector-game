@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tile } from '../components/Tile';
 import { Button } from '../components/Button';
@@ -7,7 +8,7 @@ import { haptics } from '../utils/haptics';
 
 interface GameProps {
   mode: GameMode;
-  onEndGame: (score: number, level: number, reason?: {title: string, desc: string}) => void;
+  onEndGame: (level: number, reason?: {title: string, desc: string}) => void;
   onBackToMenu: () => void;
   highScore: number;
 }
@@ -424,7 +425,7 @@ export const Game: React.FC<GameProps> = ({ mode, onEndGame, onBackToMenu, highS
   const handleGameOver = (reason?: { title: string, desc: string }) => {
     stopTimer();
     setIsPlaying(false);
-    onEndGame(0, levelRef.current, reason);
+    onEndGame(levelRef.current, reason);
   };
 
   const movePlayer = useCallback((dx: number, dy: number) => {

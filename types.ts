@@ -24,6 +24,6 @@ export enum TileType {
 }
 
 export interface HighScore {
-  score: number;
+  level: number;
   date: string;
 }

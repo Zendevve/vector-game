@@ -270,13 +270,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
         <button 
             onClick={handleHelpClick}
             onMouseEnter={() => handleMouseEnter(3, descriptions[3])}
-            className={`transition-colors flex flex-col items-center gap-2 group outline-none ${selectedIndex === 3 ? 'text-white scale-110' : 'text-neutral-600 hover:text-white'}`}
+            className={`relative p-4 transition-all duration-300 flex flex-col items-center gap-2 group outline-none ${selectedIndex === 3 ? 'text-white scale-110' : 'text-neutral-600 hover:text-white'}`}
         >
             <HelpCircle size={20} className="group-hover:scale-110 transition-transform" />
             <span className="text-[9px] font-bold tracking-widest uppercase">How to Play</span>
         </button>
 
         <div className="flex flex-col items-center gap-1">
+             <div className="flex items-center gap-2 mb-2 opacity-50">
+                 <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                 <span className="text-[10px] font-mono tracking-[0.2em] text-emerald-500/80">SYS.READY</span>
+            </div>
             <div className="text-neutral-800 text-[10px] font-bold tracking-widest uppercase">
                 CREATED BY ZENDEVVE
             </div>
@@ -299,7 +303,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, highScores, act
 
                 <div className="flex-1 overflow-y-auto pr-2 space-y-8 font-mono text-xs text-neutral-300 custom-scrollbar">
                     
-                    {/* Content omitted for brevity, same as original */}
                     <div>
                         <h3 className="text-white font-bold mb-4 tracking-wider text-sm uppercase">Identification</h3>
                         <div className="grid grid-cols-3 gap-4">
